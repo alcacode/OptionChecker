@@ -1,0 +1,22 @@
+{
+  "name": "option_checker",
+  "version": "1.0.0",
+  "description": "Provides the abstract class OptionChecker which provides robust options checking.",
+  "main": "lib/index.js",
+  "directories": {
+    "lib": "lib"
+  },
+  "dependencies": {
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "options",
+    "class"
+  ],
+  "author": "alcacode",
+  "license": "GPL-2.0-only",
+  "types": "lib/index",
+  "private": true
+}
