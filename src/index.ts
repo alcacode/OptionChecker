@@ -1,3 +1,5 @@
+/// <reference path="index.d.ts" />
+
 function isObject(arg: any): arg is object
 {
 	return typeof arg === 'object' || (arg instanceof Object);
@@ -14,18 +16,19 @@ function getSpecies<T extends any>(O: T): (new (...args: any[]) => any)|
 	if (!isObject(O))
 		return;
 
-	let S: (new (...args: any[]) => any) | undefined = undefined;
+	let S: (new (...args: any[]) => any)|undefined = undefined;
 
 	try {
 		S = O[Symbol.species];
-	} finally { /* Intentionally left blank. */ }
+	} finally { /* Intentionally left blank. */
+	}
 
 	if (S === undefined) {
 		if (O.prototype)
 			S = O.prototype;
 		else
 			S = O.__proto__;
-	}		
+	}
 
 	return S;
 }
@@ -50,7 +53,7 @@ function SpeciesConstructor<T extends any>(
 }
 
 function invalid(opts: { [key: string]: any }, key: string, rule: OptionRule,
-		 reason: ERRVAL): void
+		 reason: ERR): void
 {
 	if (!rule.required) {
 		if ('defaultValue' in rule)
@@ -64,43 +67,45 @@ function invalid(opts: { [key: string]: any }, key: string, rule: OptionRule,
 	const optStr = `option '${key}'`;
 
 	switch (reason) {
-	case ERRVAL.OUT_OF_RANGE:
+	case ERR.OUT_OF_RANGE:
 		rule = rule as (OptionRuleNumber | OptionRuleBigint);
 		const rangeMax = 'max' in rule ? ' < ' + (rule.max! + 1) : '';
 		const rangeMin = 'min' in rule ? (rule.min! - 1) + ' < ' : '';
 
 		throw RangeError(`${optStr} is not within its allowed` +
 				 `range [${rangeMin}x${rangeMax}]`);
-	case ERRVAL.NOT_FINITE:
+	case ERR.NOT_FINITE:
 		throw RangeError(`${optStr} is not a finite number`);
-	case ERRVAL.NAN:
+	case ERR.NAN:
 		throw TypeError(`${optStr} must not be NaN`);
-	case ERRVAL.NOT_INTEGER:
+	case ERR.NOT_INTEGER:
 		throw TypeError(`${optStr} is not an integer`);
-	case ERRVAL.MISSING:
+	case ERR.MISSING:
 		throw ReferenceError(
 			`${optStr} is required, but is not present`);
-	case ERRVAL.WRONG_TYPE:
+	case ERR.WRONG_TYPE:
 		throw TypeError(`${optStr} must be of type ${rule.type},` +
 				` got ${typeof opts[key]}`);
-	case ERRVAL.TEST_FAIL:
+	case ERR.TEST_FAIL:
 		throw Error(`${optStr} failed to validate`);
-	case ERRVAL.LENGTH_OUT_OF_RANGE:
+	case ERR.LENGTH_OUT_OF_RANGE:
 		rule = rule as (OptionRuleObject | OptionRuleString);
 
 		if (typeof opts[key].length !== 'number')
 			throw ReferenceError(optStr + 'has a specified max\
                                 and/or min length but value lacks a length property');
 
-		const lenMax = 'maxLength' in rule ? ' < ' + (rule.maxLength! + 1) :
-						     '';
-		const lenMin = 'minLength' in rule ? (rule.minLength! - 1) + ' < ' :
-						     '';
+		const lenMax = 'maxLength' in rule ?
+				       ' < ' + (rule.maxLength! + 1) :
+				       '';
+		const lenMin = 'minLength' in rule ?
+				       (rule.minLength! - 1) + ' < ' :
+				       '';
 
 		throw RangeError(
 			`${optStr} has an invalid length, the` +
 			` allowed range is [${lenMin}length${lenMax}]`);
-	case ERRVAL.INVALID_INSTANCE:
+	case ERR.INVALID_INSTANCE:
 		rule = rule as OptionRuleObject;
 		if (rule.instance && rule.instance.name)
 			throw TypeError(`${optStr} is not an instance of ${
@@ -152,8 +157,9 @@ function evalTestFn(val: any, fn?: (arg: any) => boolean, passFull?: boolean,
 	return [result, tmp];
 }
 
-export function parseOptions(optDecl: OptionDeclaration,
-			     opts?: {[key: string]: any}): {[key: string]: any}
+export function parseOptions<O extends OptionList<any>>(
+	optDecl: OptionDeclaration<O>,
+	opts?: {[key: string]: any}): OptionList<O>
 {
 	const out: { [key: string]: any } = {};
 	if (typeof opts !== 'object')
@@ -176,7 +182,7 @@ export function parseOptions(optDecl: OptionDeclaration,
 		out[k] = opts[k];
 
 		if (!(k in opts)) {
-			invalid(out, k, rule, ERRVAL.MISSING);
+			invalid(out, k, rule, ERR.MISSING);
 			continue;
 		}
 
@@ -196,13 +202,14 @@ export function parseOptions(optDecl: OptionDeclaration,
 
 		const valType = typeof value;
 		if (!validTypes.includes(valType)) {
-			invalid(out, k, rule, ERRVAL.WRONG_TYPE);
+			invalid(out, k, rule, ERR.WRONG_TYPE);
 			continue;
 		}
 
 		if ('instance' in rule) {
-			if (!isObject(value) || !(value instanceof rule.instance!)) {
-				invalid(out, k, rule, ERRVAL.INVALID_INSTANCE);
+			if (!isObject(value) ||
+			    !(value instanceof rule.instance!)) {
+				invalid(out, k, rule, ERR.INVALID_INSTANCE);
 				continue;
 			}
 		}
@@ -211,7 +218,7 @@ export function parseOptions(optDecl: OptionDeclaration,
 		if (valType === 'number' || valType === 'bigint') {
 			if (('min' in rule && rule.min! > value) ||
 			    ('max' in rule && rule.max! < value)) {
-				invalid(out, k, rule, ERRVAL.OUT_OF_RANGE);
+				invalid(out, k, rule, ERR.OUT_OF_RANGE);
 				continue;
 			}
 		} else if (valType === 'string' || valType === 'object') {
@@ -222,23 +229,22 @@ export function parseOptions(optDecl: OptionDeclaration,
 			     (len === NaN || rule.minLength! > len)) ||
 			    ('maxLength' in rule &&
 			     (len === NaN || rule.maxLength! < len))) {
-				invalid(out, k, rule,
-					ERRVAL.LENGTH_OUT_OF_RANGE);
+				invalid(out, k, rule, ERR.LENGTH_OUT_OF_RANGE);
 				continue;
 			}
 		}
 
 		if (valType === 'number') {
-			if ('notNaN' in rule && rule.notNaN && value === NaN) {
-				invalid(out, k, rule, ERRVAL.NAN);
+			if ('notNaN' in rule && rule.notNaN && Number.isNaN(value)) {
+				invalid(out, k, rule, ERR.NAN);
 				continue;
 			} else if ('notInfinite' in rule && rule.notInfinite &&
 				   !Number.isFinite(value)) {
-				invalid(out, k, rule, ERRVAL.NOT_FINITE);
+				invalid(out, k, rule, ERR.NOT_FINITE);
 				continue;
 			} else if ('notFloat' in rule && rule.notFloat &&
 				   !Number.isInteger(value)) {
-				invalid(out, k, rule, ERRVAL.NOT_INTEGER);
+				invalid(out, k, rule, ERR.NOT_INTEGER);
 				continue;
 			}
 		}
@@ -246,22 +252,35 @@ export function parseOptions(optDecl: OptionDeclaration,
 		const passTest = evalTestFn(value, rule.passTest, rule.passFull,
 					    rule.allowPartial);
 		if (!passTest[0]) {
-			invalid(out, k, rule, ERRVAL.TEST_FAIL);
+			invalid(out, k, rule, ERR.TEST_FAIL);
 			continue;
 		}
 
 		out[k] = passTest[1];
 	}
 
-	return out;
+	return out as OptionList<O>;
 }
 
-export abstract class OptionChecker {
-	options: { [key: string]: any } = {};
+export const OptionChecker = (function() {
+	return function OptionChecker(this: {
+		       [optVarName: string]: ReturnType<typeof parseOptions>
+	       },
+				      optDecl: OptionDeclaration,
+				      options?: { [key: string]: any }) {
+		if (new.target === undefined)
+			throw new TypeError(
+				"Constructor OptionChecker requires 'new'");
 
-	constructor(optDecl: OptionDeclaration,
-		    options?: { [key: string]: any })
-	{
-		this.options = parseOptions(optDecl, options);
-	}
-}
+		let optVarName: string;
+		if ('optVarName' in optDecl &&
+		    typeof optDecl.optVarName === 'string' &&
+		    optDecl.optVarName.length) {
+			optVarName = optDecl.optVarName;
+		} else {
+			optVarName = 'options';
+		}
+
+		this[optVarName] = parseOptions(optDecl, options);
+	} as unknown as OptionCheckerConstructor;
+})();

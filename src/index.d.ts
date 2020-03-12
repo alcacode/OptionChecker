@@ -136,12 +136,35 @@ declare type OptionRule =
 	 OptionRuleUndefined | OptionRuleNumber | OptionRuleBigint |
 	 OptionRuleBoolean | OptionRuleArray);
 
-declare interface OptionDeclaration {
-	throwOnUnrecognized?: boolean;
-	options: { [key: string]: OptionRule }
+declare type OptionList<O extends { [key: string]: any }> = {
+	[P in keyof O]: OptionRule
 }
 
-declare const enum ERRVAL {
+declare interface OptionDeclaration<O = {}> {
+	/**
+	 * Causes `parseOptions` to throw an exception if an undeclared
+	 * property is found on the option object.
+	 */
+	throwOnUnrecognized?: boolean;
+
+	/**
+	 * Property key to use for parsed options in `OptionChecker`.
+	 * Defaults to "options" when not set or value is empty.
+	 */
+	optVarName?: string;
+
+	options: OptionList<O>;
+}
+
+declare interface OptionCheckerConstructor {
+	new <OptName extends string = 'options', OptList extends { [x: string]: any } = any>(optDecl: OptionDeclaration<any>, options?: { [key: string]: any }): {
+		[o in OptName]: {
+			[k in keyof OptList]: OptList[k]
+		}
+	}
+}
+
+declare const enum ERR {
 	OUT_OF_RANGE,
 	NOT_FINITE,
 	NAN,

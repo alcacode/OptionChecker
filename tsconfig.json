@@ -2,27 +2,23 @@
         "compilerOptions": {
                 "target": "es2018",
                 "esModuleInterop": true,
-                "module": "ESNext",
+                "moduleResolution": "node",
+                "module": "commonjs",
                 "sourceMap": false,
                 "noImplicitAny": true,
                 "removeComments": true,
                 "alwaysStrict": true,
-                "outDir": "lib",
+                "outDir": "lib/",
                 "strict": true,
                 "noUnusedLocals": true,
                 "lib": [
                         "ESNext"
                 ],
                 "baseUrl": ".",
-                "declaration": true,
                 "composite": true,
-                "rootDir": "src/",
-                "typeRoots": [
-                        "./"
-                ]
+                "rootDir": "src/"
         },
         "exclude": [
-                "lib/",
                 ".vscode",
                 ".gitignore",
                 "package-lock.json",
