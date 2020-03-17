@@ -2,37 +2,73 @@
 
 Provides the class `OptionChecker` and `parseOptions()` which provides robust options checking.
 
+- [option_checker](#optionchecker)
+  - [The `OptionDeclaration` Object](#the-optiondeclaration-object)
+    - [`OptionDeclaration.throwOnUnrecognized`](#optiondeclarationthrowonunrecognized)
+    - [`OptionDeclaration.optVarName`](#optiondeclarationoptvarname)
+    - [`OptionDeclaration.options`](#optiondeclarationoptions)
+  - [The `OptionRule` Object](#the-optionrule-object)
+    - [**`OptionRule.type`**](#optionruletype)
+    - [`OptionRule.required`](#optionrulerequired)
+    - [`OptionRule.defaultValue`](#optionruledefaultvalue)
+    - [`OptionRule.passTest(value)`](#optionrulepasstestvalue)
+    - [`OptionRule.testFullValue`](#optionruletestfullvalue)
+    - [`OptionRule.allowPartialPass`](#optionruleallowpartialpass)
+    - [`OptionRule.onWrongType(value)`](#optionruleonwrongtypevalue)
+    - [`OptionRule.transformFn(value)`](#optionruletransformfnvalue)
+    - [`OptionRule.maxLength`](#optionrulemaxlength)
+    - [`OptionRule.minLength`](#optionruleminlength)
+    - [`OptionRule.instance`](#optionruleinstance)
+    - [`OptionRule.max`](#optionrulemax)
+    - [`OptionRule.min`](#optionrulemin)
+    - [`OptionRule.notFloat`](#optionrulenotfloat)
+    - [`OptionRule.notNaN`](#optionrulenotnan)
+    - [`OptionRule.notInfinite`](#optionrulenotinfinite)
+    - [`OptionRule.coerceType`](#optionrulecoercetype)
+      - [Conversion to `bigint`](#conversion-to-bigint)
+      - [Conversion to `boolean`](#conversion-to-boolean)
+      - [Conversion to `number`](#conversion-to-number)
+      - [Conversion to `string`](#conversion-to-string)
+  - [`parseOptions(optDecl[, opts])`](#parseoptionsoptdecl-opts)
+    - [Parameters](#parameters)
+    - [Returns](#returns)
+    - [Exceptions](#exceptions)
+    - [Example](#example)
+  - [Class: `OptionChecker`](#class-optionchecker)
+  - [`OptionChecker()`](#optionchecker-1)
+    - [Parameters](#parameters-1)
+
 ## The `OptionDeclaration` Object
 
 The options declaration object is used to declare the requirements of applicable to options and to tweak the behavior of `parseOptions()`.
 
 ### `OptionDeclaration.throwOnUnrecognized`
 
-* <`boolean`>
+- <`boolean`>
 
 Optional. If `true`, causes any provided option not present in `OptionDeclaration.options` to throw an exception. Default: `false`.
 
 ### `OptionDeclaration.optVarName`
 
-* <`string`>
+- <`string`>
 
 Optional. Property key used to store parsed options. Default: `options`.
 
 ### `OptionDeclaration.options`
 
-* <`object`>
+- <`object`>
 
 Object containing property keys that represent valid options. The only allowed value is `OptionRule`.
 
 ## The `OptionRule` Object
 
-* `type` <`'object' | 'function' | 'number' | 'bigint' | 'string' | 'undefined' | 'boolean' | 'symbol' | 'array'`>
+- `type` <`'object' | 'function' | 'number' | 'bigint' | 'string' | 'undefined' | 'boolean' | 'symbol' | 'array'`>
 
 Object specifying limits for individual options.
 
 ### **`OptionRule.type`**
 
-* <`string`>
+- <`string`>
 
 Required. Case insensitive. One of `'object'`, `'function'`, `'number'`, `'bigint'`, `'string'`, `'undefined'`, `'boolean'`, `'symbol'`, or `'array'`.
 
@@ -40,13 +76,13 @@ Note: Although the option value is tested against the specified type, there are 
 
 ### `OptionRule.required`
 
-* <`boolean`>
+- <`boolean`>
 
 Optional. If `true` an exception will be thrown if the option is missing or its value is invalid.
 
 ### `OptionRule.defaultValue`
 
-* <`any`>
+- <`any`>
 
 Optional. Value to use if option is missing or its value is invalid. If set, that option is guaranteed to exist in the parsed options object.
 
@@ -54,21 +90,21 @@ Note: If `required` is `true` this value is effectively ignored.
 
 ### `OptionRule.passTest(value)`
 
-* `this` <`undefined`>
-* `value` <`any`> Value of the option currently being evaluated or its member items if an `@@iterator` method is present.
-* Returns: <`boolean`> `true` if test passed.
+- `this` <`undefined`>
+- `value` <`any`> Value of the option currently being evaluated or its member items if an `@@iterator` method is present.
+- Returns: <`boolean`> `true` if test passed.
 
 Optional. Function used to test option value. If the function returns `false` then the option is discarded.
 
 ### `OptionRule.testFullValue`
 
-* <`boolean`>
+- <`boolean`>
 
 Optional. Passes the entire option value to `passTest()` even if an `@@iterator` method is present. Does nothing if `passTest()` is not present.
 
 ### `OptionRule.allowPartialPass`
 
-* <`boolean`>
+- <`boolean`>
 
 Optional. If `true` and `passTest()` is present, instead of the entire value being discarded only the failing property will be discarded.
 
@@ -76,15 +112,15 @@ Note: This creates a new object of the same type as the option value is created 
 
 ### `OptionRule.onWrongType(value)`
 
-* `this` <`undefined`>
-* `value` <`any`> Value of the option currently being evaluated.
+- `this` <`undefined`>
+- `value` <`any`> Value of the option currently being evaluated.
 
 Optional. Function called **if** type check fails, replacing the current option value and continuing evaluation. If not present, a type mismatch will instead dismiss the option. Called before final type check.
 
 ### `OptionRule.transformFn(value)`
 
-* `this` <`undefined`>
-* `value` <`any`> Value of the option currently being evaluated.
+- `this` <`undefined`>
+- `value` <`any`> Value of the option currently being evaluated.
 
 Optional. Transformation function whose return value replaces the current option value. This can be used to cast values to more appropriate types or formats. Called before final type check.
 
@@ -94,13 +130,13 @@ Note: This function is called after `onWrongType()`.
 
 ### `OptionRule.minLength`
 
-* <`number`>
+- <`number`>
 
 Optional. Only applies where `type` is `'string'`, `'object'`, `'function'`, or `'array'`. Discard the option if its `length` property is greater than `maxLength`, less than `minLength`, or if no numeric `length` property is present.
 
 ### `OptionRule.instance`
 
-* <`object`> | <`Function`>
+- <`object`> | <`Function`>
 
 Optional. Only applies where `type` is `'object'`, `'function'`, or `'array'`. Discard option if value is not an instance of `instance`.
 
@@ -108,31 +144,31 @@ Optional. Only applies where `type` is `'object'`, `'function'`, or `'array'`. D
 
 ### `OptionRule.min`
 
-* <`number`>
+- <`number`>
 
 Optional. Only applies where `type` is `'number'` or `'bigint'`. Discard values greater than `max` and/or less than `min`.
 
 ### `OptionRule.notFloat`
 
-* <`boolean`>
+- <`boolean`>
 
 Optional. Only applies where `type` is `'number'`. Discard non-integer values.
 
 ### `OptionRule.notNaN`
 
-* <`boolean`>
+- <`boolean`>
 
 Optional. Only applies where `type` is `'number'`. Discard `NaN` values.
 
 ### `OptionRule.notInfinite`
 
-* <`boolean`>
+- <`boolean`>
 
 Optional. Only applies where `type` is `'number'`. Discard non-finite values (`Infinity`).
 
 ### `OptionRule.coerceType`
 
-* <`boolean`>
+- <`boolean`>
 
 Optional. Only applies where `type` is `'bigint'`, `'boolean'`, `'number'`, or `'string'`. If `true`, attempt to convert option value to the one specified in `type`. Type coercion is performed before the final type check.
 
@@ -166,14 +202,14 @@ Optional. Options object.
 
 ### Returns
 
-* <`object`>
+- <`object`>
 
 Parsed options object. Contains options with valid values or its default value if one was defined by `OptionRule.defaultValue`.
 
 ### Exceptions
 
-* <`Error`> If `throwOnUnrecognized` is `true` and an option not present in `optDecl.options` is found.
-* If an option has `required` set to `true` and the associated option is either missing or invalid. The type of exception thrown is determined by the first failed criterion.
+- <`Error`> If `throwOnUnrecognized` is `true` and an option not present in `optDecl.options` is found.
+- If an option has `required` set to `true` and the associated option is either missing or invalid. The type of exception thrown is determined by the first failed criterion.
 
 ### Example
 
