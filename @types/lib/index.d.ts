@@ -1,23 +1,32 @@
-declare type JSType = ('object' | 'function' | 'number' | 'bigint' | 'string' |
-		       'undefined' | 'boolean' | 'symbol' | 'array');
+declare function parseOptions<O extends OptionList<any>>(optDecl: OptionDeclaration<O>, opts?: {
+	[key: string]: any;
+    }): OptionList<O>;
+
+declare const OptionChecker: OptionCheckerConstructor;
+    
+declare type OptionCheckerTypes = ('object' | 'function' | 'number' | 'bigint' | 'string' |
+		       'undefined' | 'boolean' | 'symbol' | 'array' | 'null');
+
+declare type CoercableTypes = ('bigint' | 'boolean' | 'number' | 'string');
 
 declare interface OptTransform<T = any> {
 	/**
 	 * If present and type does not match type of value, replace value with
-	 * the return value of `typeTransformFn` called with itself as the
+	 * the return value of `onWrongType` called with itself as the
 	 * first argument.\
 	 * \
-	 * Note: `typeTransformFn` is called _before_ `valueTransformFn`.
+	 * Note: `onWrongType` is called _before_ `transformFn`.
 	 */
-	typeTransformFn?: (arg: any) => T;
+	onWrongType?: (value: any) => T;
 
 	/**
-	 * If present, replace value with the return value of `transformFn`
-	 * called with itself as the first argument.\
+	 * If present, replace value with the return value of
+	 * `transformFn` called with itself as the first
+	 *  argument.\
 	 * \
-	 * Note: `valueTransformFn` is called _after_ `typeTransformFn`.
+	 * Note: `transformFn` is called _after_ `onWrongType`.
 	 */
-	valueTransformFn?: (arg: any) => T;
+	transformFn?: (value: any) => T;
 }
 
 declare interface OptLength {
@@ -49,6 +58,13 @@ declare interface OptRange {
 	min?: number;
 }
 
+declare interface OptCoerceType {
+	/**
+	 * If `true`, attempt to convert value to the one specified in `type`.
+	 */
+	coerceType?: boolean;
+}
+
 declare interface OptionRuleBase extends OptTransform {
 	/** If `true` throw an exception if value is missing or invalid. */
 	required?: boolean;
@@ -67,51 +83,48 @@ declare interface OptionRuleBase extends OptTransform {
 	 *
 	 * This behavior can be overriden by `passFull`.
 	 */
-	passTest?: (arg: any) => boolean;
+	passTest?: (value: any) => boolean;
 
 	/**
 	 * Pass the entire value to `passTest` regardless of type.
 	 * Default: `false`.
 	 */
-	passFull?: boolean;
+	testFullValue?: boolean;
 
 	/**
 	 * Replace `string` and `object` values with the intersection of the
 	 * set of given values and the set of possible valid values.
 	 * Default: `false`.
 	 */
-	allowPartial?: boolean;
+	allowPartialPass?: boolean;
 }
 
-declare interface OptionRuleBoolean {
+declare interface OptionRuleBoolean extends OptCoerceType {
 	type: 'boolean';
-
-	/** If value is truthy convert to `true`, otherwise `false`. */
-	toBool?: boolean;
 }
 
-declare interface OptionRuleString extends OptLength {
-	type: 'string'|(['string']&Exclude<JSType, 'string'>[]);
+declare interface OptionRuleString extends OptLength, OptCoerceType {
+	type: 'string';
 }
 
-declare interface OptionRuleUndefined {
-	type: 'undefined'|(['undefined']&Exclude<JSType, 'undefined'>[]);
-}
+declare interface OptionRuleNull { type: 'null'; }
+declare interface OptionRuleUndefined { type: 'undefined'; }
+declare interface OptionRuleSymbol { type: 'symbol'; }
 
 declare interface OptionRuleObject extends OptLength, OptInstance {
-	type: 'object'|(['object']&Exclude<JSType, 'object'>[]);
+	type: 'object' | 'array' | 'null';
 }
 
 declare interface OptionRuleFunction extends OptLength, OptInstance {
-	type: 'function'|(['function']&Exclude<JSType, 'function'>[]);
+	type: 'function';
 }
 
 declare interface OptionRuleArray extends OptLength, OptInstance {
-	type: 'array'|(['array']&Exclude<JSType, 'array'>[]);
+	type: 'array';
 }
 
-declare interface OptionRuleNumber extends OptRange {
-	type: 'number'|(['number']&Exclude<JSType, 'number'>[]);
+declare interface OptionRuleNumber extends OptRange, OptCoerceType {
+	type: 'number';
 
 	/** If `true`, reject non-integer values. */
 	notFloat?: boolean;
@@ -126,15 +139,19 @@ declare interface OptionRuleNumber extends OptRange {
 	notInfinite?: boolean;
 }
 
-declare interface OptionRuleBigint extends OptRange {
-	type: 'bigint'|(['bigint']&Exclude<JSType, 'bigint'>[]);
+declare interface OptionRuleBigint extends OptRange, OptCoerceType {
+	type: 'bigint';
 }
 
 declare type OptionRule =
 	OptionRuleBase &
 	(OptionRuleObject | OptionRuleString | OptionRuleFunction |
 	 OptionRuleUndefined | OptionRuleNumber | OptionRuleBigint |
-	 OptionRuleBoolean | OptionRuleArray);
+	 OptionRuleBoolean | OptionRuleArray | OptionRuleSymbol |
+	 OptionRuleNull);
+
+declare type CoercableOptionRuleType = (OptionRuleBigint | OptionRuleBoolean |
+					OptionRuleNumber | OptionRuleString);
 
 declare type OptionList<O extends { [key: string]: any }> = {
 	[P in keyof O]: OptionRule
@@ -173,5 +190,13 @@ declare const enum ERR {
 	WRONG_TYPE,
 	TEST_FAIL,
 	LENGTH_OUT_OF_RANGE,
-	INVALID_INSTANCE
+	INVALID_INSTANCE,
+	UNEXPECTED_VALUE
+}
+
+declare const enum COERCE_TYPE {
+	BIGINT,
+	BOOLEAN,
+	NUMBER,
+	STRING
 }
