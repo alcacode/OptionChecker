@@ -1,4 +1,15 @@
-/// <reference path="index.d.ts" />
+function isCoercable(rule: OptionRule): rule is CoercableOptionRuleType
+{
+	switch (rule.type) {
+	case 'bigint':
+	case 'boolean':
+	case 'number':
+	case 'string':
+		return true;
+	}
+
+	return false;
+}
 
 function isObject(arg: any): arg is object
 {
@@ -9,6 +20,47 @@ function isConstructor(arg: any): arg is new (...args: any[]) => any
 {
 	return arg instanceof Object && typeof arg.constructor === 'function';
 }
+
+function ToNumber(val: any): number {
+	if (typeof val === 'number')
+		return val;
+
+	if (typeof val === 'bigint')
+		return Number(val);
+
+	// Converting a Symbol to Number is not allowed.
+	if (typeof val === 'symbol')
+		return NaN;
+
+	return +val;
+}
+
+function coerceType(value: any, toType: CoercableTypes) {
+	if (toType === 'bigint') {
+		let v: BigInt | null = null;
+		try {
+			v = BigInt(ToNumber(value));
+		} catch(err) { /* Intentionally left empty. */}
+
+		return v;
+	}
+
+	if (toType === 'boolean')
+		return !!value;
+
+	if (toType === 'number')
+		return ToNumber(value);
+
+	if (toType === 'string') {
+		// String concatenation with a Symbol is not allowed.
+		if (typeof value === 'symbol')
+			return String(value);
+
+		return '' + (value);
+	}
+
+	throw TypeError("invalid destination type");
+} 
 
 function getSpecies<T extends any>(O: T): (new (...args: any[]) => any)|
 	undefined
@@ -113,6 +165,8 @@ function invalid(opts: { [key: string]: any }, key: string, rule: OptionRule,
 		else
 			throw TypeError(
 				`${optStr} is not a valid instance type`);
+	case ERR.UNEXPECTED_VALUE:
+		throw Error(`${optStr} has an unexpected value`);
 	default:
 		throw Error(`${optStr} is invalid`);
 	}
@@ -130,31 +184,49 @@ function evalTestFn(val: any, fn?: (arg: any) => boolean, passFull?: boolean,
 		return [!!fn.call(null, val), val];
 	}
 
-	// String needs special handling.
+	// Handle edge cases.
 	const isStr = (typeof val === 'string');
+	const isMapOrSet = val instanceof Map || val instanceof Set;
+
 	let tmp: any;
-	if (isStr)
-		tmp = '';
-	else
-		tmp = new (SpeciesConstructor(val, Object));
+	if (partial) {
+		if (isStr)
+			tmp = '';
+		else
+			tmp = new (SpeciesConstructor(val, Object));
+	}
 
+	let numValid = 0;
 	let result = true;
+	let entries: [string | number | symbol, any][];
 
-	for (const [k, v] of Object.entries(val)) {
+	if (isMapOrSet)
+		entries = [...val.entries()];
+	else
+		entries = Object.entries(val);
+
+	for (const [k, v] of entries) {
 		if (!fn.call(null, v)) {
 			if (!partial) {
 				result = false;
 				break;
 			}
-		} else {
+		} else if (partial) {
 			if (isStr)
 				tmp += v;
+			else if (isMapOrSet)
+				'set' in tmp ? tmp.set(k, v) : tmp.add(v);
 			else
 				tmp[k] = v;
+
+			numValid++;
 		}
 	}
 
-	return [result, tmp];
+	if (partial && numValid === 0)
+		result = false;
+
+	return [result, partial ? tmp : val];
 }
 
 export function parseOptions<O extends OptionList<any>>(
@@ -173,36 +245,50 @@ export function parseOptions<O extends OptionList<any>>(
 	}
 
 	for (const k of Object.keys(optDecl.options)) {
-		const rule = Object.create(optDecl.options[k]);
+		const rule = Object.create(optDecl.options[k]) as OptionRule;
+		let __internal_eq_val;
+		let __internal_eq_flag = 0;
+
+		// Convert macro types.
 		if (rule.type === 'array') {
 			rule.type = 'object';
 			rule.instance = Array;
+		} else if (rule.type === 'null') {
+			rule.type = 'object';
+			__internal_eq_flag = 1;
+			__internal_eq_val = null;
+		} else {
+			rule.type = rule.type.toLowerCase() as OptionCheckerTypes;
 		}
 
+		// Work on a copy to prevent side effects.
 		out[k] = opts[k];
-
 		if (!(k in opts)) {
 			invalid(out, k, rule, ERR.MISSING);
 			continue;
 		}
 
-		const validTypes: JSType[] = (typeof rule.type === 'string' ?
-						      [rule.type] :
-						      rule.type);
 		let value = opts[k];
 
-		if (rule.type === 'boolean' && rule.toBool === true)
+		if (isCoercable(rule) && rule.coerceType === true)
+			value = coerceType(value, rule.type);
 
-			if (!validTypes.includes(typeof value) &&
-			    rule.typeTransformFn instanceof Function)
-				value = rule.typeTransformFn(value);
+		if (rule.type !== typeof value &&
+			rule.onWrongType instanceof Function)
+			value = rule.onWrongType.call(null, value);
 
-		if (rule.valueTransformFn instanceof Function)
-			value = rule.valueTransformFn(value);
+		if (rule.transformFn instanceof Function)
+			value = rule.transformFn.call(null, value);
 
+		/** Final value type. */
 		const valType = typeof value;
-		if (!validTypes.includes(valType)) {
+		if (rule.type !== valType) {
 			invalid(out, k, rule, ERR.WRONG_TYPE);
+			continue;
+		}
+
+		if (__internal_eq_flag && value !== __internal_eq_val) {
+			invalid(out, k, rule, ERR.UNEXPECTED_VALUE);
 			continue;
 		}
 
@@ -222,8 +308,8 @@ export function parseOptions<O extends OptionList<any>>(
 				continue;
 			}
 		} else if (valType === 'string' || valType === 'object') {
-			const len: number = typeof value.length === 'number' ?
-						    value.length :
+			const len: number = typeof value?.length === 'number' ?
+						    value?.length :
 						    NaN;
 			if (('minLength' in rule &&
 			     (len === NaN || rule.minLength! > len)) ||
@@ -249,14 +335,14 @@ export function parseOptions<O extends OptionList<any>>(
 			}
 		}
 
-		const passTest = evalTestFn(value, rule.passTest, rule.passFull,
-					    rule.allowPartial);
+		const passTest = evalTestFn(value, rule.passTest, rule.testFullValue,
+					    rule.allowPartialPass);
 		if (!passTest[0]) {
 			invalid(out, k, rule, ERR.TEST_FAIL);
 			continue;
+		} else {
+			out[k] = passTest[1];
 		}
-
-		out[k] = passTest[1];
 	}
 
 	return out as OptionList<O>;
@@ -269,8 +355,7 @@ export const OptionChecker = (function() {
 				      optDecl: OptionDeclaration,
 				      options?: { [key: string]: any }) {
 		if (new.target === undefined)
-			throw new TypeError(
-				"Constructor OptionChecker requires 'new'");
+			throw TypeError("Constructor OptionChecker requires 'new'");
 
 		let optVarName: string;
 		if ('optVarName' in optDecl &&

@@ -1,6 +1,7 @@
 {
         "compilerOptions": {
                 "target": "es2018",
+                "baseUrl": ".",
                 "esModuleInterop": true,
                 "moduleResolution": "node",
                 "module": "commonjs",
@@ -14,9 +15,15 @@
                 "lib": [
                         "ESNext"
                 ],
-                "baseUrl": ".",
+                "types": [
+                        "./@types/lib/"
+                ],
                 "composite": true,
-                "rootDir": "src/"
+                "rootDir": "src/",
+                "typeRoots": [
+                        "@types/lib"
+                ],
+                "declarationDir": "@types/lib"
         },
         "exclude": [
                 ".vscode",
