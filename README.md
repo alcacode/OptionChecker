@@ -62,15 +62,13 @@ Object containing property keys that represent valid options. The only allowed v
 
 ## The `OptionRule` Object
 
-- `type` <`'object' | 'function' | 'number' | 'bigint' | 'string' | 'undefined' | 'boolean' | 'symbol' | 'array'`>
-
 Object specifying limits for individual options.
 
 ### **`OptionRule.type`**
 
 - <`string`>
 
-Required. Case insensitive. One of `'object'`, `'function'`, `'number'`, `'bigint'`, `'string'`, `'undefined'`, `'boolean'`, `'symbol'`, or `'array'`.
+Required. Case insensitive. One of `'object'`, `'function'`, `'number'`, `'bigint'`, `'string'`, `'undefined'`, `'boolean'`, `'symbol'`, `'array'`, or `'null'`.
 
 Note: Although the option value is tested against the specified type, there are multiple ways of converting said value to an appropriate type. What it really means is that the _resulting value_ of any conversion attempts must adhere to the specified type.
 
