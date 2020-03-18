@@ -3,6 +3,15 @@
 Provides the class `OptionChecker` and `parseOptions()` which provides robust options checking.
 
 - [option_checker](#optionchecker)
+  - [Option types](#option-types)
+    - [ES6 Types](#es6-types)
+    - [Macro Types](#macro-types)
+      - [Array](#array)
+      - [Int](#int)
+      - [Null](#null)
+    - [Special Types](#special-types)
+      - [Any](#any)
+      - [ArrayLike](#arraylike)
   - [The `OptionDeclaration` Object](#the-optiondeclaration-object)
     - [`OptionDeclaration.throwOnUnrecognized`](#optiondeclarationthrowonunrecognized)
     - [`OptionDeclaration.optVarName`](#optiondeclarationoptvarname)
@@ -29,6 +38,7 @@ Provides the class `OptionChecker` and `parseOptions()` which provides robust op
       - [Conversion to `boolean`](#conversion-to-boolean)
       - [Conversion to `number`](#conversion-to-number)
       - [Conversion to `string`](#conversion-to-string)
+    - [`OptionRule.compactArrayLike`](#optionrulecompactarraylike)
   - [`parseOptions(optDecl[, opts])`](#parseoptionsoptdecl-opts)
     - [Parameters](#parameters)
     - [Returns](#returns)
@@ -37,6 +47,50 @@ Provides the class `OptionChecker` and `parseOptions()` which provides robust op
   - [Class: `OptionChecker`](#class-optionchecker)
   - [`OptionChecker()`](#optionchecker-1)
     - [Parameters](#parameters-1)
+
+## Option types
+
+The following types can be used in `OptionRule`. Type value is case-insensitive.
+
+### ES6 Types
+
+- object
+- function
+- number
+- bigint
+- string
+- undefined
+- boolean
+- symbol
+
+### Macro Types
+
+Macro types are types that expand to a built-in type with some specific configuration.
+
+#### Array
+
+Shorthand for 'object' where `instance` is `Array`.
+
+#### Int
+
+Shorthand for 'number' where `isFloat` is `false`.
+
+#### Null
+
+Shorthand for 'object' where the only allowed value is `null`.
+
+### Special Types
+
+Special types are types with specific behavior associated with them.
+
+#### Any
+
+Allows any type to pass. Prevents `onWrongType` from being called.
+
+#### ArrayLike
+
+Not implemented.
+
 
 ## The `OptionDeclaration` Object
 
@@ -68,7 +122,7 @@ Object specifying limits for individual options.
 
 - <`string`>
 
-Required. Case insensitive. One of `'object'`, `'function'`, `'number'`, `'bigint'`, `'string'`, `'undefined'`, `'boolean'`, `'symbol'`, `'array'`, or `'null'`.
+Required. Case insensitive. One of `'object'`, `'function'`, `'number'`, `'bigint'`, `'string'`, `'undefined'`, `'boolean'`, `'symbol'`, `'array'`, `'null'`, or `'any'`.
 
 Note: Although the option value is tested against the specified type, there are multiple ways of converting said value to an appropriate type. What it really means is that the _resulting value_ of any conversion attempts must adhere to the specified type.
 
@@ -136,7 +190,7 @@ Optional. Only applies where `type` is `'string'`, `'object'`, `'function'`, or 
 
 - <`object`> | <`Function`>
 
-Optional. Only applies where `type` is `'object'`, `'function'`, or `'array'`. Discard option if value is not an instance of `instance`.
+Optional. Only applies where `type` is `'object'` or `'function'`. Discard option if value is not an instance of `instance`.
 
 ### `OptionRule.max`
 
@@ -187,6 +241,14 @@ Values of types other than `BigInt` and `Symbol` are converted to `Number`s by u
 Values are converted by performing string concatenation, with the exception of `Symbol` values which are converted by calling the `String()` constructor with the value as its argument.
 
 Note: This occurs _before_ `onWrongType()` and `transformFn()` are called.
+
+### `OptionRule.compactArrayLike`
+
+- <`boolean`>
+
+Optional. If `true`, remove any gaps resulting from a partial pass. Instances of `Array` and `TypedArray` are considered array-like.
+
+Note: Has no effect if `allowPartialPass` is not `true`.
 
 ## `parseOptions(optDecl[, opts])`
 

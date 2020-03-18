@@ -3,9 +3,14 @@ declare function parseOptions<O extends OptionList<any>>(optDecl: OptionDeclarat
     }): OptionList<O>;
 
 declare const OptionChecker: OptionCheckerConstructor;
-    
-declare type OptionCheckerTypes = ('object' | 'function' | 'number' | 'bigint' | 'string' |
-		       'undefined' | 'boolean' | 'symbol' | 'array' | 'null');
+
+/** ES-6 types. */
+declare type BaseTypes = ('object' | 'function' | 'number' | 'bigint' |
+			  'string' | 'undefined' | 'boolean' | 'symbol');
+
+declare type MacroTypes = ('any' | 'array' | 'null' | 'int');
+
+declare type OptionCheckerTypes = BaseTypes | MacroTypes;
 
 declare type CoercableTypes = ('bigint' | 'boolean' | 'number' | 'string');
 
@@ -65,6 +70,16 @@ declare interface OptCoerceType {
 	coerceType?: boolean;
 }
 
+declare interface OptCompactArrayLike {
+	/**
+	 * If `true`, remove any gaps resulting from a partial pass. Instances
+	 * of `Array` and `TypedArray` are considered array-like.
+	 * 
+	 * Note: Has no effect if `allowPartialPass` is not `true`.
+	 */
+	compactArrayLike?: boolean;
+}
+
 declare interface OptionRuleBase extends OptTransform {
 	/** If `true` throw an exception if value is missing or invalid. */
 	required?: boolean;
@@ -107,24 +122,25 @@ declare interface OptionRuleString extends OptLength, OptCoerceType {
 	type: 'string';
 }
 
+declare interface OptionRuleAny { type: 'any'; }
 declare interface OptionRuleNull { type: 'null'; }
 declare interface OptionRuleUndefined { type: 'undefined'; }
 declare interface OptionRuleSymbol { type: 'symbol'; }
 
-declare interface OptionRuleObject extends OptLength, OptInstance {
-	type: 'object' | 'array' | 'null';
+declare interface OptionRuleObject extends OptLength, OptInstance, OptCompactArrayLike {
+	type: 'object';
 }
 
 declare interface OptionRuleFunction extends OptLength, OptInstance {
 	type: 'function';
 }
 
-declare interface OptionRuleArray extends OptLength, OptInstance {
+declare interface OptionRuleArray extends OptLength, OptCompactArrayLike {
 	type: 'array';
 }
 
 declare interface OptionRuleNumber extends OptRange, OptCoerceType {
-	type: 'number';
+	type: 'number' | 'int';
 
 	/** If `true`, reject non-integer values. */
 	notFloat?: boolean;
@@ -148,10 +164,9 @@ declare type OptionRule =
 	(OptionRuleObject | OptionRuleString | OptionRuleFunction |
 	 OptionRuleUndefined | OptionRuleNumber | OptionRuleBigint |
 	 OptionRuleBoolean | OptionRuleArray | OptionRuleSymbol |
-	 OptionRuleNull);
+	 OptionRuleNull | OptionRuleAny);
 
-declare type CoercableOptionRuleType = (OptionRuleBigint | OptionRuleBoolean |
-					OptionRuleNumber | OptionRuleString);
+declare type CoercableOptionRuleType = OptionRuleBase & { type: CoercableTypes };
 
 declare type OptionList<O extends { [key: string]: any }> = {
 	[P in keyof O]: OptionRule
@@ -199,4 +214,10 @@ declare const enum COERCE_TYPE {
 	BOOLEAN,
 	NUMBER,
 	STRING
+}
+
+declare interface Uint8Array {
+	__proto__: {
+		constructor: Function
+	}
 }

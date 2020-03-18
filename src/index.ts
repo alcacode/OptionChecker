@@ -1,3 +1,7 @@
+function isTypedArray(val: any): boolean {
+	return val instanceof Uint8Array.prototype.__proto__.constructor;
+}
+
 function isCoercable(rule: OptionRule): rule is CoercableOptionRuleType
 {
 	switch (rule.type) {
@@ -163,17 +167,16 @@ function invalid(opts: { [key: string]: any }, key: string, rule: OptionRule,
 			throw TypeError(`${optStr} is not an instance of ${
 				rule.instance.name}`);
 		else
-			throw TypeError(
-				`${optStr} is not a valid instance type`);
+			throw TypeError(`${optStr} is not a valid instance type`);
 	case ERR.UNEXPECTED_VALUE:
 		throw Error(`${optStr} has an unexpected value`);
-	default:
-		throw Error(`${optStr} is invalid`);
 	}
+
+	throw Error(`${optStr} is invalid (unknown reason)`);
 }
 
 function evalTestFn(val: any, fn?: (arg: any) => boolean, passFull?: boolean,
-		    partial?: boolean): [boolean, typeof val]
+		    partial?: boolean, cmpctArrLike?: boolean): [boolean, typeof val]
 {
 	if (!(fn instanceof Function))
 		return [true, val];
@@ -187,6 +190,7 @@ function evalTestFn(val: any, fn?: (arg: any) => boolean, passFull?: boolean,
 	// Handle edge cases.
 	const isStr = (typeof val === 'string');
 	const isMapOrSet = val instanceof Map || val instanceof Set;
+	const isArrayLike = Array.isArray(val) || isTypedArray(val);
 
 	let tmp: any;
 	if (partial) {
@@ -196,7 +200,7 @@ function evalTestFn(val: any, fn?: (arg: any) => boolean, passFull?: boolean,
 			tmp = new (SpeciesConstructor(val, Object));
 	}
 
-	let numValid = 0;
+	let validIndicies: Set<any> = new Set();
 	let result = true;
 	let entries: [string | number | symbol, any][];
 
@@ -219,14 +223,18 @@ function evalTestFn(val: any, fn?: (arg: any) => boolean, passFull?: boolean,
 			else
 				tmp[k] = v;
 
-			numValid++;
+			validIndicies.add(k);
 		}
 	}
 
-	if (partial && numValid === 0)
+	if (partial && validIndicies.size === 0)
 		result = false;
 
-	return [result, partial ? tmp : val];
+	if (result && isArrayLike && cmpctArrLike && validIndicies.size !== val.length)
+		tmp = tmp.filter((_: any, i: number) => validIndicies.has('' + i));
+
+	validIndicies.clear();
+	return [result, partial ? tmp : (tmp = null)];
 }
 
 export function parseOptions<O extends OptionList<any>>(
@@ -245,23 +253,35 @@ export function parseOptions<O extends OptionList<any>>(
 	}
 
 	for (const k of Object.keys(optDecl.options)) {
-		const rule = Object.create(optDecl.options[k]) as OptionRule;
-		let __internal_eq_val;
-		let __internal_eq_flag = 0;
+		let rule = Object.create(optDecl.options[k]) as OptionRule;
 
-		// Convert macro types.
-		if (rule.type === 'array') {
-			rule.type = 'object';
-			rule.instance = Array;
-		} else if (rule.type === 'null') {
-			rule.type = 'object';
-			__internal_eq_flag = 1;
-			__internal_eq_val = null;
-		} else {
-			rule.type = rule.type.toLowerCase() as OptionCheckerTypes;
+		let __eq_val;
+		let __eq_flag = false;
+		let __skip_type_check = false;
+
+		/* Convert macro types. */
+		switch (rule.type) {
+		case 'array':
+			rule = Object.assign(rule, { type: 'object', instance: Array });
+			break;
+		case 'null':
+			rule = Object.assign(rule, { type: 'object' });
+			__eq_flag = true;
+			__eq_val = null;
+			break;
+		case 'int':
+			rule.type = 'number';
+			rule.notFloat = true;
+			break;
+		case 'any':
+			__skip_type_check = true;
+			break;
+		default:
+			rule.type = rule.type.toLowerCase() as BaseTypes;
+			break;
 		}
 
-		// Work on a copy to prevent side effects.
+		/* Work on a copy to prevent side effects. */
 		out[k] = opts[k];
 		if (!(k in opts)) {
 			invalid(out, k, rule, ERR.MISSING);
@@ -270,11 +290,11 @@ export function parseOptions<O extends OptionList<any>>(
 
 		let value = opts[k];
 
-		if (isCoercable(rule) && rule.coerceType === true)
+		if (isCoercable(rule) && !__skip_type_check)
 			value = coerceType(value, rule.type);
 
-		if (rule.type !== typeof value &&
-			rule.onWrongType instanceof Function)
+		if (rule.type !== typeof value && !__skip_type_check &&
+		    rule.onWrongType instanceof Function)
 			value = rule.onWrongType.call(null, value);
 
 		if (rule.transformFn instanceof Function)
@@ -282,12 +302,12 @@ export function parseOptions<O extends OptionList<any>>(
 
 		/** Final value type. */
 		const valType = typeof value;
-		if (rule.type !== valType) {
+		if (rule.type !== valType && !__skip_type_check) {
 			invalid(out, k, rule, ERR.WRONG_TYPE);
 			continue;
 		}
 
-		if (__internal_eq_flag && value !== __internal_eq_val) {
+		if (__eq_flag && value !== __eq_val) {
 			invalid(out, k, rule, ERR.UNEXPECTED_VALUE);
 			continue;
 		}
@@ -300,7 +320,7 @@ export function parseOptions<O extends OptionList<any>>(
 			}
 		}
 
-		/* Value range and length complicance. */
+		/* Test range and length. */
 		if (valType === 'number' || valType === 'bigint') {
 			if (('min' in rule && rule.min! > value) ||
 			    ('max' in rule && rule.max! < value)) {
@@ -335,8 +355,11 @@ export function parseOptions<O extends OptionList<any>>(
 			}
 		}
 
-		const passTest = evalTestFn(value, rule.passTest, rule.testFullValue,
-					    rule.allowPartialPass);
+		const passTest =
+			evalTestFn(value, rule.passTest, rule.testFullValue,
+				   rule.allowPartialPass,
+				   (rule as OptionRuleObject).compactArrayLike);
+
 		if (!passTest[0]) {
 			invalid(out, k, rule, ERR.TEST_FAIL);
 			continue;

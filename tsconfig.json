@@ -1,7 +1,7 @@
 {
         "compilerOptions": {
                 "target": "es2018",
-                "baseUrl": ".",
+                "baseUrl": "/",
                 "esModuleInterop": true,
                 "moduleResolution": "node",
                 "module": "commonjs",
@@ -13,18 +13,21 @@
                 "strict": true,
                 "noUnusedLocals": true,
                 "lib": [
-                        "ESNext"
-                ],
-                "types": [
-                        "./@types/lib/"
+                        "ESNext",
+                        "DOM"
                 ],
                 "composite": true,
                 "rootDir": "src/",
                 "typeRoots": [
-                        "@types/lib"
+                        "@types/",
+                        "@types/lib/",
+                        "@types/lib/test/",
                 ],
                 "declarationDir": "@types/lib"
         },
+        "include": [
+                "src/**/*"
+        ],
         "exclude": [
                 ".vscode",
                 ".gitignore",
