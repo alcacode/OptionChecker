@@ -1,8 +1,49 @@
 # option_checker
 
-Provides the class `OptionChecker` and `parseOptions()` which provides robust options checking.
+Provides `parseOptions()`-function which verifies an options-object according to a predefined declaration. It returns an object containing only valid values and whose properties can be known in advance. This functionality can be also inherited by simply extending the provided `OptionChecker`-class.
+
+## Installation
+
+### NPM
+
+```console
+npm install alcacode/OptionChecker
+```
+
+### Manual
+
+Download or clone the repository using `git clone https://github.com/alcacode/OptionChecker.git`.
+
+## Usage
+
+```typescript
+// Declare what options are allowed.
+const decl = {
+  options: {
+    str: {
+      type: 'string',
+      minLength: 1,
+      maxLength: 10,
+      defaultValue: 'default'
+    },
+    num: {
+      type: 'number',
+      min: 10,
+      max: 30
+    }
+  }
+}
+
+const parsedOptions = parseOptions(decl, providedOptions);
+```
+
+In the example code above, `parsedOptions` is guaranteed to have `str` property whose value is guaranteed to be a `String` with a length between 1 and 10. It will have a `num` property if and only if a `num` option with a `Number` value greater than or equal to `10` and less than or equal to `30` was provided.
 
 - [option_checker](#optionchecker)
+  - [Installation](#installation)
+    - [NPM](#npm)
+    - [Manual](#manual)
+  - [Usage](#usage)
   - [Option types](#option-types)
     - [ES6 Types](#es6-types)
     - [Macro Types](#macro-types)
