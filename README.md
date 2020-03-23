@@ -39,11 +39,14 @@ const parsedOptions = parseOptions(decl, providedOptions);
 
 In the example code above, `parsedOptions` is guaranteed to have `str` property whose value is guaranteed to be a `String` with a length between 1 and 10. It will have a `num` property if and only if a `num` option with a `Number` value greater than or equal to `10` and less than or equal to `30` was provided.
 
+## Table of Contents
+
 - [option_checker](#optionchecker)
   - [Installation](#installation)
     - [NPM](#npm)
     - [Manual](#manual)
   - [Usage](#usage)
+  - [Table of Contents](#table-of-contents)
   - [Option types](#option-types)
     - [ES6 Types](#es6-types)
     - [Macro Types](#macro-types)
@@ -130,8 +133,8 @@ Allows any type to pass. Prevents `onWrongType` from being called.
 
 #### ArrayLike
 
-Not implemented.
-
+Any `Array`, `TypedArray`, or `Object` with a `Number` valued `length` property and `@@iterable` method returning well-formed iterables.
+An iterable is considered well-formed when it has a `value` property and a `Boolean` valued `done` property.
 
 ## The `OptionDeclaration` Object
 
