@@ -8,11 +8,22 @@ declare const OptionChecker: OptionCheckerConstructor;
 declare type BaseTypes = ('object' | 'function' | 'number' | 'bigint' |
 			  'string' | 'undefined' | 'boolean' | 'symbol');
 
-declare type MacroTypes = ('any' | 'array' | 'null' | 'int');
+declare type MacroTypes = ('any' | 'array' | 'null' | 'int' | 'arraylike');
 
 declare type OptionCheckerTypes = BaseTypes | MacroTypes;
 
 declare type CoercableTypes = ('bigint' | 'boolean' | 'number' | 'string');
+
+declare type TypedArrayInstance =
+	(Int8Array | Int16Array | Int32Array | BigInt64Array | Uint8Array |
+	 Uint8ClampedArray | Uint16Array | Uint32Array | BigUint64Array |
+	 Float32Array | Float64Array);
+
+declare interface ArrayLike<T> {
+	readonly length: number;
+	readonly [n: number]: T;
+	[Symbol.iterator](): IterableIterator<T>
+}
 
 declare interface OptTransform<T = any> {
 	/**
@@ -128,7 +139,7 @@ declare interface OptionRuleUndefined { type: 'undefined'; }
 declare interface OptionRuleSymbol { type: 'symbol'; }
 
 declare interface OptionRuleObject extends OptLength, OptInstance, OptCompactArrayLike {
-	type: 'object';
+	type: 'object' | 'arraylike';
 }
 
 declare interface OptionRuleFunction extends OptLength, OptInstance {
@@ -206,7 +217,8 @@ declare const enum ERR {
 	TEST_FAIL,
 	LENGTH_OUT_OF_RANGE,
 	INVALID_INSTANCE,
-	UNEXPECTED_VALUE
+	UNEXPECTED_VALUE,
+	NOT_ARRAY_LIKE
 }
 
 declare const enum COERCE_TYPE {

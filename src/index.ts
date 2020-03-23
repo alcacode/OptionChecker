@@ -1,5 +1,34 @@
-function isTypedArray(val: any): boolean {
+function isObject(arg: any): arg is object
+{
+	return typeof arg === 'object' || (arg instanceof Object);
+}
+
+function isTypedArray(val: any): val is TypedArrayInstance {
 	return val instanceof Uint8Array.prototype.__proto__.constructor;
+}
+
+function isWellFormedIterator(val: any): val is Iterator<any>
+{
+	if (!(val instanceof Function))
+		return false;
+
+	const itr = val();
+	let tmp;
+	if (itr.next instanceof Function && isObject(tmp = itr.next()) &&
+	    typeof tmp.done === 'boolean' && 'value' in tmp)
+		return true;
+
+	return false;
+}
+
+function isArrayLike<T extends ArrayLike<any>>(val: T): val is T
+{
+	if (!isObject(val) || typeof val.length !== 'number')
+		return false;
+
+	return Array.isArray(val) || isTypedArray(val) ||
+	       Array.prototype[Symbol.iterator] === val[Symbol.iterator] ||
+	       isWellFormedIterator(val[Symbol.iterator]);
 }
 
 function isCoercable(rule: OptionRule): rule is CoercableOptionRuleType
@@ -13,11 +42,6 @@ function isCoercable(rule: OptionRule): rule is CoercableOptionRuleType
 	}
 
 	return false;
-}
-
-function isObject(arg: any): arg is object
-{
-	return typeof arg === 'object' || (arg instanceof Object);
 }
 
 function isConstructor(arg: any): arg is new (...args: any[]) => any
@@ -170,6 +194,8 @@ function invalid(opts: { [key: string]: any }, key: string, rule: OptionRule,
 			throw TypeError(`${optStr} is not a valid instance type`);
 	case ERR.UNEXPECTED_VALUE:
 		throw Error(`${optStr} has an unexpected value`);
+	case ERR.NOT_ARRAY_LIKE:
+		throw Error(`${optStr} is not an array-like Object`);
 	}
 
 	throw Error(`${optStr} is invalid (unknown reason)`);
@@ -258,11 +284,16 @@ export function parseOptions<O extends OptionList<any>>(
 		let __eq_val;
 		let __eq_flag = false;
 		let __skip_type_check = false;
+		let __check_arraylike = false;
 
 		/* Convert macro types. */
 		switch (rule.type) {
 		case 'array':
 			rule = Object.assign(rule, { type: 'object', instance: Array });
+			break;
+		case 'arraylike':
+			rule = Object.assign(rule, { type: 'object' });
+			__check_arraylike = true;
 			break;
 		case 'null':
 			rule = Object.assign(rule, { type: 'object' });
@@ -309,6 +340,11 @@ export function parseOptions<O extends OptionList<any>>(
 
 		if (__eq_flag && value !== __eq_val) {
 			invalid(out, k, rule, ERR.UNEXPECTED_VALUE);
+			continue;
+		}
+
+		if (__check_arraylike && !isArrayLike(value)) {
+			invalid(out, k, rule, ERR.NOT_ARRAY_LIKE);
 			continue;
 		}
 
@@ -371,7 +407,7 @@ export function parseOptions<O extends OptionList<any>>(
 	return out as OptionList<O>;
 }
 
-export const OptionChecker = (function() {
+export const OptionCheckerConstructor = (function() {
 	return function OptionChecker(this: {
 		       [optVarName: string]: ReturnType<typeof parseOptions>
 	       },

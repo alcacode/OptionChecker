@@ -2,6 +2,7 @@ import { parseOptions } from '../index';
 import {testConfig as tc_gen} from './generic';
 import {testConfig as tc_str} from './string';
 import {testConfig as tc_arr} from './array';
+import {testConfig as tc_arr_like} from './arraylike';
 import {testConfig as tc_num} from './number';
 
 /** If `false`, only prints test details for failed tests. */
@@ -12,6 +13,7 @@ const tests: { [key: string]: TestConfig } = {
 	any: tc_gen,
 	string: tc_str,
 	array: tc_arr,
+	arrayLike: tc_arr_like,
 	number: tc_num,
 };
 

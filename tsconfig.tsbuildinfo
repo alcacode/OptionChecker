@@ -154,11 +154,15 @@
         "signature": "1377923021927244ea19433873b997ad8585533b0a56d5de29cda497f7842756"
       },
       "./src/index.ts": {
-        "version": "526b878b5f338262b9055632ae39e714cb53f89f46e74d3218a8ec531b8c879f",
-        "signature": "160676f04529898473dabd1c0b236ec25f795b1b34c057e0939c10c73bf7cbc9"
+        "version": "dd0280661487632d08c70f4793cdcfbb22d447002d9309ab5177720f63d40970",
+        "signature": "e58ece6a25078b6f772978915309a97b1ee23793c814b881b2d563022a515e02"
       },
       "./src/test/array.ts": {
         "version": "4eaa10f412fcab4ecbbe395278bf8735aa065661fe0cd0e92758ddc30563de02",
+        "signature": "9bf7d0ec99a59941cf169c5030d65b9f42de461c2b91fee04b6559d2026367a8"
+      },
+      "./src/test/arraylike.ts": {
+        "version": "cd07320025230eb861a9b5779d9240623896bcbc371c47af07d2bab7776cba64",
         "signature": "9bf7d0ec99a59941cf169c5030d65b9f42de461c2b91fee04b6559d2026367a8"
       },
       "./src/test/generic.ts": {
@@ -174,12 +178,12 @@
         "signature": "9bf7d0ec99a59941cf169c5030d65b9f42de461c2b91fee04b6559d2026367a8"
       },
       "./src/test/index.ts": {
-        "version": "e5bd5a4a8ee8c34fd0f656ba23657a2ed79ce615fd8c6bb585ad54144f98efb0",
+        "version": "210e4af934967478cb157927646548ba0d1582337a2636e9e8b495ee664a89df",
         "signature": "5691a832de9275faa0d0df78c6761de8d3b6888ebb51b719265b0235169dcd91"
       },
       "./@types/lib/index.d.ts": {
-        "version": "86d9600298c13ce72405e22cd8a4081c5baa6baa60a41f8c2123d147fd5916bc",
-        "signature": "86d9600298c13ce72405e22cd8a4081c5baa6baa60a41f8c2123d147fd5916bc"
+        "version": "09a25f5cb8ebcb1262c83bf38478cfb6a54e494e3a29fe3d320ae101b3b2ded5",
+        "signature": "09a25f5cb8ebcb1262c83bf38478cfb6a54e494e3a29fe3d320ae101b3b2ded5"
       },
       "./@types/lib/test/index.d.ts": {
         "version": "17d289124de2635551105416486d9ab42f30635d17c679265d7f9f17330d1a38",
@@ -208,7 +212,7 @@
       "typeRoots": [
         "./@types",
         "./@types/lib",
-        "./@types/lib/test"
+        "./@types/lib/test/index.d.ts"
       ],
       "declarationDir": "./@types/lib",
       "project": "./tsconfig.json",
@@ -220,6 +224,7 @@
         "./src/test/generic.ts",
         "./src/test/string.ts",
         "./src/test/array.ts",
+        "./src/test/arraylike.ts",
         "./src/test/number.ts"
       ]
     },

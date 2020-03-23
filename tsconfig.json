@@ -21,7 +21,7 @@
                 "typeRoots": [
                         "@types/",
                         "@types/lib/",
-                        "@types/lib/test/",
+                        "@types/lib/test/index.d.ts",
                 ],
                 "declarationDir": "@types/lib"
         },
