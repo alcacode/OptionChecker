@@ -154,7 +154,7 @@
         "signature": "1377923021927244ea19433873b997ad8585533b0a56d5de29cda497f7842756"
       },
       "./src/index.ts": {
-        "version": "f07fba6dfdfd53283098ecff5b1d4528aea05331f75154de1ce0e8325af486b4",
+        "version": "385dc178322ab8a4546003fa4875a5022b20796428e1a39b2c8c9a5070d02e8c",
         "signature": "c9991510cc55146ccca21a66f85f2a11766831e7c7ea33c5be0d7bdc91574227"
       },
       "./src/test/array.ts": {
