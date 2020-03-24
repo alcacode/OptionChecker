@@ -192,7 +192,12 @@ function resolveReference<O extends OptionList<any>>(base: string, decl: OptionD
 			break;
 		}
 
-		refChain.push(cur = rule.reference);
+		cur = rule.reference;
+		if ('macroFor' in decl.options[cur])
+			cur = getRootMacro<O>(decl.options[cur].macroFor!, decl) as string;
+
+		if (cur)
+			refChain.push();
 	}
 
 	refChain.unshift(base);
@@ -238,7 +243,7 @@ function parseDeclaration<O extends { [key: string]: any }>(
 	out.options = {} as OptionList<O>;
 
 	for (const k of Object.keys(decl.options) as (keyof O)[]) {
-		if (decl.options[k].reference) {
+		if (decl.options[k].reference && !decl.options[k].macroFor) {
 			const opt = resolveReference(k as string, decl);
 			if (opt)
 				out.options[k] = opt;
