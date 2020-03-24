@@ -190,7 +190,7 @@ declare type OptionRule =
 	(OptionRuleObject | OptionRuleString | OptionRuleFunction |
 	 OptionRuleUndefined | OptionRuleNumber | OptionRuleBigint |
 	 OptionRuleBoolean | OptionRuleArray | OptionRuleSymbol |
-	 OptionRuleNull | OptionRuleAny);
+	 OptionRuleNull | OptionRuleAny | OptionRuleMacro);
 
 declare type CoercableOptionRuleType = OptionRuleBase & { type: CoercableTypes };
 
