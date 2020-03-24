@@ -175,6 +175,29 @@ function handleRuleError(type: RULE_ERROR, decl: OptionDeclaration<any>, ruleNam
 		console.warn(msg);
 }
 
+function getRootMacro<O extends OptionList<any>, D extends O = any>(base: string, decl: OptionDeclaration<D>): keyof O | undefined {
+	let chain: Set<keyof O> = new Set();
+	let cur: string | undefined = decl.options[base].macroFor;
+
+	for (let i = 0; i < MAX_REFERENCE_DEPTH; i++) {
+		if (cur === undefined || !(cur in decl.options)) {
+			handleRuleError(RULE_ERROR.REFERENCE_ERROR, decl, base, cur);
+			return;
+		} else if (chain.has(cur)) {
+			handleRuleError(RULE_ERROR.CIRCULAR_REFERENCE, decl, base, cur);
+			return;
+		}
+
+		if (typeof decl.options[cur].macroFor !== 'string')
+			break;
+
+		cur = decl.options[cur].macroFor!;
+		chain.add(cur);
+	}
+
+	return cur;
+}
+
 function resolveReference<O extends OptionList<any>>(base: string, decl: OptionDeclaration<O>): OptionRule | undefined {
 	const refChain: (keyof O)[] = [];
 	let out: Partial<OptionRule> = {};
@@ -210,29 +233,6 @@ function resolveReference<O extends OptionList<any>>(base: string, decl: OptionD
 	delete out.reference;
 
 	return out as OptionRule;
-}
-
-function getRootMacro<O extends OptionList<any>, D extends O = any>(base: string, decl: OptionDeclaration<D>): keyof O | undefined {
-	let chain: Set<keyof O> = new Set();
-	let cur: string | undefined = decl.options[base].macroFor;
-
-	for (let i = 0; i < MAX_REFERENCE_DEPTH; i++) {
-		if (cur === undefined || !(cur in decl.options)) {
-			handleRuleError(RULE_ERROR.REFERENCE_ERROR, decl, base, cur);
-			return;
-		} else if (chain.has(cur)) {
-			handleRuleError(RULE_ERROR.CIRCULAR_REFERENCE, decl, base, cur);
-			return;
-		}
-
-		if (typeof decl.options[cur].macroFor !== 'string')
-			break;
-
-		cur = decl.options[cur].macroFor!;
-		chain.add(cur);
-	}
-
-	return cur;
 }
 
 /** Returns a new declaration based on `decl` with all references resolved. */
