@@ -23,7 +23,7 @@ export const testConfig: TestConfig = {
                 decl: { type: 'arraylike' }
         },
         generic: {
-                description: 'Typed Array',
+                description: 'Array-like Object',
                 arg: genericArrayLike,
                 decl: { type: 'arraylike' }
         }
