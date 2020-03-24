@@ -154,19 +154,19 @@
         "signature": "1377923021927244ea19433873b997ad8585533b0a56d5de29cda497f7842756"
       },
       "./src/index.ts": {
-        "version": "dd0280661487632d08c70f4793cdcfbb22d447002d9309ab5177720f63d40970",
-        "signature": "e58ece6a25078b6f772978915309a97b1ee23793c814b881b2d563022a515e02"
+        "version": "f07fba6dfdfd53283098ecff5b1d4528aea05331f75154de1ce0e8325af486b4",
+        "signature": "c9991510cc55146ccca21a66f85f2a11766831e7c7ea33c5be0d7bdc91574227"
       },
       "./src/test/array.ts": {
         "version": "4eaa10f412fcab4ecbbe395278bf8735aa065661fe0cd0e92758ddc30563de02",
         "signature": "9bf7d0ec99a59941cf169c5030d65b9f42de461c2b91fee04b6559d2026367a8"
       },
       "./src/test/arraylike.ts": {
-        "version": "cd07320025230eb861a9b5779d9240623896bcbc371c47af07d2bab7776cba64",
+        "version": "1833640ebdbb61ff54de251edcb556f76e585c4f758c0774e663237de974d8a4",
         "signature": "9bf7d0ec99a59941cf169c5030d65b9f42de461c2b91fee04b6559d2026367a8"
       },
-      "./src/test/generic.ts": {
-        "version": "277ff2bdab2fc6ffefa3e0afd3c45f6bf2e0a191d1100f7f912c1ccf48d01481",
+      "./src/test/general.ts": {
+        "version": "b0352fcb9befb9dd4a3cd6491d51365613614e19388e573f05dfc935a0dbe945",
         "signature": "9bf7d0ec99a59941cf169c5030d65b9f42de461c2b91fee04b6559d2026367a8"
       },
       "./src/test/string.ts": {
@@ -178,12 +178,12 @@
         "signature": "9bf7d0ec99a59941cf169c5030d65b9f42de461c2b91fee04b6559d2026367a8"
       },
       "./src/test/index.ts": {
-        "version": "210e4af934967478cb157927646548ba0d1582337a2636e9e8b495ee664a89df",
+        "version": "fcecf42d683a2d623a3a9d9636dde2ec5c9b5c6fb462ae0869651f6fb6fbec0d",
         "signature": "5691a832de9275faa0d0df78c6761de8d3b6888ebb51b719265b0235169dcd91"
       },
       "./@types/lib/index.d.ts": {
-        "version": "09a25f5cb8ebcb1262c83bf38478cfb6a54e494e3a29fe3d320ae101b3b2ded5",
-        "signature": "09a25f5cb8ebcb1262c83bf38478cfb6a54e494e3a29fe3d320ae101b3b2ded5"
+        "version": "3260e514151e1ad649289be5a6d4f2eaae8157fa11deb50801aa38b914e94687",
+        "signature": "3260e514151e1ad649289be5a6d4f2eaae8157fa11deb50801aa38b914e94687"
       },
       "./@types/lib/test/index.d.ts": {
         "version": "17d289124de2635551105416486d9ab42f30635d17c679265d7f9f17330d1a38",
@@ -221,7 +221,7 @@
     "referencedMap": {
       "./src/test/index.ts": [
         "./src/index.ts",
-        "./src/test/generic.ts",
+        "./src/test/general.ts",
         "./src/test/string.ts",
         "./src/test/array.ts",
         "./src/test/arraylike.ts",

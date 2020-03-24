@@ -124,6 +124,21 @@ declare interface OptionRuleBase extends OptTransform {
 	 */
 	allowPartialPass?: boolean;
 
+	/**
+	 * Use the rules of another option and map output to it. _All_ other
+	 * options are discarded if set. If the referenced rule does not exist,
+	 * a warning message will be printed and the option will be discarded.
+	 */
+	macroFor?: string;
+
+	/**
+	 * If set, inherits the rules of the referenced rule. If the referenced
+	 * rule does not exist, a warning message will be printed and the option
+	 * will be discarded. If the reference is circular a warning message is
+	 * printed and the reference is ignored, but the rule is kept.
+	 */
+	reference?: string;
+
 	/** Map this option to a different property key in the output object. */
 	mapTo?: string;
 
@@ -131,7 +146,7 @@ declare interface OptionRuleBase extends OptTransform {
 	 * If `true`, a mapped option may overwrite the option it is mapped to
 	 * (the last valid value is used). If `false`, a mapped option will only
 	 * used when the option it is mapped to is either missing or invalid.
-	 * Default: `true`.
+	 * Defaults to the value of the global `allowOverride`.
 	 */
 	allowOverride?: boolean;
 }
@@ -144,6 +159,7 @@ declare interface OptionRuleString extends OptLength, OptCoerceType {
 	type: 'string';
 }
 
+declare interface OptionRuleMacro { macroFor: string; type?: undefined; }
 declare interface OptionRuleAny { type: 'any'; }
 declare interface OptionRuleNull { type: 'null'; }
 declare interface OptionRuleUndefined { type: 'undefined'; }
@@ -181,16 +197,12 @@ declare interface OptionRuleBigint extends OptRange, OptCoerceType {
 	type: 'bigint';
 }
 
-declare interface OptionRuleMacro {
-	macro: string;
-}
-
 declare type OptionRule =
 	OptionRuleBase &
-	(OptionRuleObject | OptionRuleString | OptionRuleFunction |
-	 OptionRuleUndefined | OptionRuleNumber | OptionRuleBigint |
-	 OptionRuleBoolean | OptionRuleArray | OptionRuleSymbol |
-	 OptionRuleNull | OptionRuleAny | OptionRuleMacro);
+	 (OptionRuleObject | OptionRuleString | OptionRuleFunction |
+	  OptionRuleUndefined | OptionRuleNumber | OptionRuleBigint |
+	  OptionRuleBoolean | OptionRuleArray | OptionRuleSymbol |
+	  OptionRuleNull | OptionRuleAny | OptionRuleMacro);
 
 declare type CoercableOptionRuleType = OptionRuleBase & { type: CoercableTypes };
 
@@ -198,12 +210,31 @@ declare type OptionList<O extends { [key: string]: any }> = {
 	[P in keyof O]: OptionRule
 }
 
-declare interface OptionDeclaration<O = {}> {
+declare interface OptionDeclaration<O = { [key: string]: any}> {
 	/**
-	 * Causes `parseOptions` to throw an exception if an undeclared
-	 * property is found on the option object.
+	 * If `true`, throw an exception if a rule contains circular
+	 * references.\ Default: `false`
+	 */
+	throwOnCircularReference?: boolean;
+
+	/**
+	 * If `true`, throw a `ReferenceError` if a rule contains references to
+	 * non-existent rules.\ Default: `false`
+	 */
+	throwOnReferenceError?: boolean;
+
+	/**
+	 * If `true`, throw  an exception if undeclared
+	 * properties are found on the option object.\
+	 * Default: `false`
 	 */
 	throwOnUnrecognized?: boolean;
+
+	/**
+	 * If `true`, print warnings when encountering non-fatal errors.\
+	 * Default: `true`
+	 */
+	printWarnings?: boolean;
 
 	/**
 	 * Property key to use for parsed options in `OptionChecker`.
@@ -216,7 +247,7 @@ declare interface OptionDeclaration<O = {}> {
 
 	/**
 	 * (Global) Overrides the default value of `allowOverride`. Does _not_
-	 * override individually set `allowOverride`.
+	 * override individually set `allowOverride`. Default: `true`.
 	 */
 	allowOverride?: boolean;
 }
@@ -227,6 +258,12 @@ declare interface OptionCheckerConstructor {
 			[k in keyof OptList]: OptList[k]
 		}
 	}
+}
+
+declare const enum RULE_ERROR {
+	UNRECOGNIZED_OPTION = 1,
+	REFERENCE_ERROR = 2,
+	CIRCULAR_REFERENCE = 3
 }
 
 declare const enum ERR {

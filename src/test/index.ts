@@ -1,5 +1,5 @@
 import { parseOptions } from '../index';
-import {testConfig as tc_gen} from './generic';
+import {testConfig as tc_gen} from './general';
 import {testConfig as tc_str} from './string';
 import {testConfig as tc_arr} from './array';
 import {testConfig as tc_arr_like} from './arraylike';
@@ -27,6 +27,9 @@ function centerAndPad(str: string, fillString: string)
 
 function getPrototype<T extends any>(obj: T)
 {
+	if (typeof obj === 'number')
+		return Number;
+
 	if ('prototype' in obj)
 		return obj.prototype;
 
@@ -89,14 +92,27 @@ for (const ck in tests) {
 
 	for (const tk in tests[ck]) {
 		const t = tests[ck][tk];
-		const decl = {
+		const decl: OptionDeclaration<any> = {
+			throwOnCircularReference: true,
+			throwOnReferenceError: true,
+			throwOnUnrecognized: true,
 			options: {
+				__numRefTarget: {
+					type: 'number',
+					min: 1,
+					max: 2,
+					defaultValue: 1
+				},
 				[tk]: t.decl
 			}
 		};
 		const expect = t.shouldFail || t.shouldThrow ?
 				       undefined :
 				       'expect' in t ? t.expect : t.arg;
+		const opts: { [x: string]: any } = {};
+
+		if ('arg' in t)
+			opts[tk] = t.arg;
 
 		let descStr = (t.description || tk).substring(0, 48);
 		if (t.description && t.description.length >= 48)
@@ -108,14 +124,15 @@ for (const ck in tests) {
 
 		// parseOptions might throw if 'required' is set.
 		try {
-			res = parseOptions(decl, 'arg' in t ? { [tk]: t.arg } : undefined);
+			res = parseOptions(decl, opts);
 			didParse = true;
 		} catch(err) {
 			errMsg = err instanceof Error ? err.message :
 							'unknown error';
 		}
 
-		const gotExpected = areObjectsSimilar(res[tk], expect);
+		const propKey = decl.options[tk].macroFor ?? tk;
+		const gotExpected = areObjectsSimilar(res[propKey], expect);
 		let didPass = didParse && gotExpected;
 
 		if (t.shouldThrow)
@@ -129,7 +146,7 @@ for (const ck in tests) {
 		if (!didPass || VERBOSE_OUTPUT) {
 			console.log(`\n> ${descStr}`);
 			console.log('Input:        ', ('arg' in t ? t.arg : '<no argument>'));
-			console.log('Output:       ', didParse ? res[tk] : '<no return value>');
+			console.log('Output:       ', didParse ? res[propKey] : '<no return value>');
 			console.log('Expected:     ', t.shouldThrow ? 'N/A' : expect);
 			console.log('Should Fail:  ', t.shouldFail ? 'Yes' : 'No');
 			console.log('Should Throw: ', t.shouldThrow ? 'Yes' : 'No');
@@ -137,7 +154,7 @@ for (const ck in tests) {
 			let resStr = `Result:       %c${didPass ? 'PASSED' : 'FAILED'}%c`;
 			if (!didParse)
 				resStr += `, exception${errMsg ? ` %c(${errMsg})` : ''}`;
-			else if (!(tk in res))
+			else if (!(propKey in res))
 				resStr += ', option discarded';
 			else if (!gotExpected)
 				resStr += `, unexpected value`;

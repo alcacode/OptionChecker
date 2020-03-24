@@ -72,7 +72,10 @@ It will have a `num` property _if_ a `num` option with a non-`NaN` `Number` or `
       - [Any](#any)
       - [ArrayLike](#arraylike)
   - [The `OptionDeclaration` Object](#the-optiondeclaration-object)
+    - [`OptionDeclaration.throwOnCircularReference`](#optiondeclarationthrowoncircularreference)
+    - [`OptionDeclaration.throwOnReferenceError`](#optiondeclarationthrowonreferenceerror)
     - [`OptionDeclaration.throwOnUnrecognized`](#optiondeclarationthrowonunrecognized)
+    - [`OptionDeclaration.printWarnings`](#optiondeclarationprintwarnings)
     - [`OptionDeclaration.optVarName`](#optiondeclarationoptvarname)
     - [`OptionDeclaration.options`](#optiondeclarationoptions)
   - [The `OptionRule` Object](#the-optionrule-object)
@@ -155,11 +158,29 @@ An iterable is considered well-formed when it has a `value` property and a `Bool
 
 The options declaration object is used to declare the requirements of applicable to options and to tweak the behavior of `parseOptions()`.
 
+### `OptionDeclaration.throwOnCircularReference`
+
+- <`boolean`>
+
+Optional. If `true`, throw an exception if a rule contains circular references. Default: `false`.
+
+### `OptionDeclaration.throwOnReferenceError`
+
+- <`boolean`>
+
+Optional. If `true`, throw a `ReferenceError` if a rule contains references to non-existent rules. Default: `false`.
+
 ### `OptionDeclaration.throwOnUnrecognized`
 
 - <`boolean`>
 
 Optional. If `true`, causes any provided option not present in `OptionDeclaration.options` to throw an exception. Default: `false`.
+
+### `OptionDeclaration.printWarnings`
+
+- <`boolean`>
+
+Optional. If `true`, a warning message will be emitted when reference errors or circular references are found. Default: `true`.
 
 ### `OptionDeclaration.optVarName`
 

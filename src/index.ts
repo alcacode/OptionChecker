@@ -1,3 +1,5 @@
+const MAX_REFERENCE_DEPTH = 16;
+
 function isObject(arg: any): arg is object
 {
 	return typeof arg === 'object' || (arg instanceof Object);
@@ -132,19 +134,137 @@ function SpeciesConstructor<T extends any>(
 	throw new TypeError(C + ' is not a valid constructor');
 }
 
+function handleRuleError(type: RULE_ERROR.CIRCULAR_REFERENCE, decl: OptionDeclaration<any>, ruleName: string, lastNonCirc?: string): void;
+function handleRuleError(type: RULE_ERROR.REFERENCE_ERROR, decl: OptionDeclaration<any>, ruleName: string, faultRefName?: string): void;
+function handleRuleError(type: RULE_ERROR.UNRECOGNIZED_OPTION, decl: OptionDeclaration<any>, ruleName: string): void;
+function handleRuleError(type: RULE_ERROR, decl: OptionDeclaration<any>, ruleName: string, subst_0?: string): void {
+	let errorConst: ErrorConstructor | undefined = undefined;
+	let doWarn = decl.printWarnings === false ? false : true;
+	let msg = '';
+
+	switch (type) {
+	case RULE_ERROR.UNRECOGNIZED_OPTION:
+		msg = `Option object contains unrecognized option '${ruleName}'`;
+		if (decl.throwOnUnrecognized === true)
+			errorConst = Error;
+
+		doWarn = false;
+		break;
+	case RULE_ERROR.REFERENCE_ERROR:
+		msg = `Rule '${ruleName}' was discarded because it references non-existent rule '${subst_0}'`;
+
+		if (decl.throwOnReferenceError === true)
+			errorConst = ReferenceError;
+
+		break;
+	case RULE_ERROR.CIRCULAR_REFERENCE:
+		if (ruleName === subst_0)
+			msg = `Rule '${ruleName}' references itself`;
+		else
+			msg = `Rule '${ruleName}' forms a circular reference after rule ${subst_0}`;
+
+		if (decl.throwOnCircularReference === true)
+			errorConst = Error;
+
+		break;
+	}
+
+	if (errorConst instanceof Function)
+		throw errorConst(msg);
+	else if (doWarn)
+		console.warn(msg);
+}
+
+function resolveReference<O extends OptionList<any>>(base: string, decl: OptionDeclaration<O>): OptionRule | undefined {
+	const refChain: (keyof O)[] = [];
+	let out: Partial<OptionRule> = {};
+
+	for (let i = 0, cur = base; i < MAX_REFERENCE_DEPTH; i++) {
+		const rule = decl.options[cur];
+
+		if (rule === undefined || rule.reference === undefined) {
+			break;
+		} else if (!(rule.reference in decl.options)) {
+			handleRuleError(RULE_ERROR.REFERENCE_ERROR, decl, base, rule.reference);
+			return;
+		} else if (refChain.includes(cur)) {
+			handleRuleError(RULE_ERROR.CIRCULAR_REFERENCE, decl, base, rule.reference);
+			break;
+		}
+
+		refChain.push(cur = rule.reference);
+	}
+
+	refChain.unshift(base);
+
+	// Do in reverse so that values further up the reference chain take
+	// precedence.
+	for (let i = refChain.length - 1; i >= 0; i--)
+		out = Object.assign(out, decl.options[refChain[i]]);
+
+	delete out.reference;
+
+	return out as OptionRule;
+}
+
+function getRootMacro<O extends OptionList<any>, D extends O = any>(base: string, decl: OptionDeclaration<D>): keyof O | undefined {
+	let chain: Set<keyof O> = new Set();
+	let cur: string | undefined = decl.options[base].macroFor;
+
+	for (let i = 0; i < MAX_REFERENCE_DEPTH; i++) {
+		if (cur === undefined || !(cur in decl.options)) {
+			handleRuleError(RULE_ERROR.REFERENCE_ERROR, decl, base, cur);
+			return;
+		} else if (chain.has(cur)) {
+			handleRuleError(RULE_ERROR.CIRCULAR_REFERENCE, decl, base, cur);
+			return;
+		}
+
+		if (typeof decl.options[cur].macroFor !== 'string')
+			break;
+
+		cur = decl.options[cur].macroFor!;
+		chain.add(cur);
+	}
+
+	return cur;
+}
+
+/** Returns a new declaration based on `decl` with all references resolved. */
+function parseDeclaration<O extends { [key: string]: any }>(
+	decl: OptionDeclaration<O>): OptionDeclaration<Partial<O>>
+{
+	const out = Object.assign({}, decl);
+	out.options = {} as OptionList<O>;
+
+	for (const k of Object.keys(decl.options) as (keyof O)[]) {
+		if (decl.options[k].reference) {
+			const opt = resolveReference(k as string, decl);
+			if (opt)
+				out.options[k] = opt;
+		} else {
+			out.options[k] = decl.options[k];
+		}
+	}
+
+	return out;
+}
+
 function invalid(opts: { [key: string]: any }, key: string, rule: OptionRule,
 		 reason: ERR): void
 {
-	if (!rule.required) {
+	if (rule.required !== true) {
 		if ('defaultValue' in rule)
-			opts[key] = rule.defaultValue;
+			opts[rule.mapTo ?? key] = rule.defaultValue;
 		else
-			delete opts[key];
+			delete opts[rule.mapTo ?? key];
 
 		return;
 	}
 
-	const optStr = `option '${key}'`;
+	let optStr = `option ${key}`;
+	if (rule.mapTo)
+		optStr += ` (macro for ${rule.mapTo})`;
 
 	switch (reason) {
 	case ERR.OUT_OF_RANGE:
@@ -161,8 +281,7 @@ function invalid(opts: { [key: string]: any }, key: string, rule: OptionRule,
 	case ERR.NOT_INTEGER:
 		throw TypeError(`${optStr} is not an integer`);
 	case ERR.MISSING:
-		throw ReferenceError(
-			`${optStr} is required, but is not present`);
+		throw ReferenceError(`${optStr} is required, but is not present`);
 	case ERR.WRONG_TYPE:
 		throw TypeError(`${optStr} must be of type ${rule.type},` +
 				` got ${typeof opts[key]}`);
@@ -263,23 +382,47 @@ function evalTestFn(val: any, fn?: (arg: any) => boolean, passFull?: boolean,
 	return [result, partial ? tmp : (tmp = null)];
 }
 
-export function parseOptions<O extends OptionList<any>>(
+export function parseOptions<O extends { [key: string]: any }>(
 	optDecl: OptionDeclaration<O>,
-	opts?: {[key: string]: any}): OptionList<O>
+	opts?: {[key: string]: any}): OptionList<Partial<O>>
 {
 	const out: { [key: string]: any } = {};
 	if (typeof opts !== 'object')
 		opts = out;
 
-	if (optDecl.throwOnUnrecognized) {
+	if (optDecl.throwOnUnrecognized === true) {
 		for (const k of Object.keys(opts)) {
 			if (!(k in optDecl.options))
-				throw Error(`unrecognized option '${k}'`);
+				handleRuleError(RULE_ERROR.UNRECOGNIZED_OPTION, optDecl, k);
 		}
 	}
 
-	for (const k of Object.keys(optDecl.options)) {
-		let rule = Object.create(optDecl.options[k]) as OptionRule;
+	const defaultOverride = optDecl.allowOverride ?? true;
+	const decl = parseDeclaration<O>(optDecl);
+	
+	// Mapped options need to go last so that they do not take precedence in
+	// case allowOverride is true.
+	const declKeys = Object.keys(decl.options)
+				 .sort((a, b) => (decl.options[a].mapTo ? 1 : 0) -
+						 (decl.options[b].mapTo ? 1 : 0));
+
+	for (const k of declKeys) {
+		let rule = decl.options[k];
+		let optName: string;
+
+		if (rule.macroFor) {
+			const rootOpt = getRootMacro<O>(k, decl);
+			if (rootOpt)
+				rule = decl.options[rootOpt];
+			else
+				continue;
+
+			optName = rootOpt as string;
+		} else {
+			optName = rule.mapTo ?? k;
+			if (rule.mapTo && optName in out && !(rule.allowOverride || defaultOverride))
+				continue;
+		}
 
 		let __eq_val;
 		let __eq_flag = false;
@@ -308,12 +451,12 @@ export function parseOptions<O extends OptionList<any>>(
 			__skip_type_check = true;
 			break;
 		default:
-			rule.type = rule.type.toLowerCase() as BaseTypes;
+			rule.type = rule.type?.toLowerCase() as BaseTypes;
 			break;
 		}
 
 		/* Work on a copy to prevent side effects. */
-		out[k] = opts[k];
+		out[optName] = opts[k];
 		if (!(k in opts)) {
 			invalid(out, k, rule, ERR.MISSING);
 			continue;
