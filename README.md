@@ -1,6 +1,9 @@
 # option_checker
 
-Provides `parseOptions()`-function which verifies an options-object according to a predefined declaration. It returns an object containing only valid values and whose properties can be known in advance. This functionality can be also inherited by simply extending the provided `OptionChecker`-class.
+Provides the `parseOptions()` function and `OptionChecker` class.
+
+The `parseOption()` function verifies an options-object according to a predefined declaration, and returns an object containing only valid values whose properties may be known in advance.
+The `OptionChecker` class is an extensible class whose `constructor` calls `parseOption()` and assigns the return value to a predefined property (`options` by default) of the instance object.
 
 ## Installation
 
@@ -21,7 +24,12 @@ Download or clone the repository using `git clone https://github.com/alcacode/Op
 const decl = {
   options: {
     str: {
+      /*
+       * Declare (required) what the expected type is after
+       * any value transforming steps have taken place.
+       */
       type: 'string',
+      // Declare any optional requirements.
       minLength: 1,
       maxLength: 10,
       defaultValue: 'default'
@@ -29,7 +37,13 @@ const decl = {
     num: {
       type: 'number',
       min: 10,
-      max: 30
+      max: 30,
+      isNaN: false,
+      /*
+       * Function whose return value replace the option value,
+       * if its type is invalid.
+       */
+      onWrongType: (v) => typeof v === 'string' ? +v : undefined
     }
   }
 }
@@ -37,7 +51,8 @@ const decl = {
 const parsedOptions = parseOptions(decl, providedOptions);
 ```
 
-In the example code above, `parsedOptions` is guaranteed to have `str` property whose value is guaranteed to be a `String` with a length between 1 and 10. It will have a `num` property if and only if a `num` option with a `Number` value greater than or equal to `10` and less than or equal to `30` was provided.
+In the above example, `parsedOptions` is guaranteed to have `str` property with a `String` value of length between 1 and 10.
+It will have a `num` property _if_ a `num` option with a non-`NaN` `Number` or `String` coercable to a `Number` value that is greater than or equal to `10` and less than or equal to `30` was provided.
 
 ## Table of Contents
 
