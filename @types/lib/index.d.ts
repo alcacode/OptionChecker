@@ -123,6 +123,17 @@ declare interface OptionRuleBase extends OptTransform {
 	 * Default: `false`.
 	 */
 	allowPartialPass?: boolean;
+
+	/** Map this option to a different property key in the output object. */
+	mapTo?: string;
+
+	/**
+	 * If `true`, a mapped option may overwrite the option it is mapped to
+	 * (the last valid value is used). If `false`, a mapped option will only
+	 * used when the option it is mapped to is either missing or invalid.
+	 * Default: `true`.
+	 */
+	allowOverride?: boolean;
 }
 
 declare interface OptionRuleBoolean extends OptCoerceType {
@@ -170,6 +181,10 @@ declare interface OptionRuleBigint extends OptRange, OptCoerceType {
 	type: 'bigint';
 }
 
+declare interface OptionRuleMacro {
+	macro: string;
+}
+
 declare type OptionRule =
 	OptionRuleBase &
 	(OptionRuleObject | OptionRuleString | OptionRuleFunction |
@@ -196,7 +211,14 @@ declare interface OptionDeclaration<O = {}> {
 	 */
 	optVarName?: string;
 
+	/** Object containing individual option rules. */
 	options: OptionList<O>;
+
+	/**
+	 * (Global) Overrides the default value of `allowOverride`. Does _not_
+	 * override individually set `allowOverride`.
+	 */
+	allowOverride?: boolean;
 }
 
 declare interface OptionCheckerConstructor {
