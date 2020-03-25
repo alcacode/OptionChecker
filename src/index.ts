@@ -175,7 +175,8 @@ function handleRuleError(type: RULE_ERROR, decl: OptionDeclaration<any>, ruleNam
 		console.warn(msg);
 }
 
-function getRootMacro(base: string, decl: OptionDeclaration<any>): string|undefined
+/** Returns `base` or the property key at the end of a macro chain. */
+function getRootMacro(base: string, decl: OptionDeclaration<any>): string
 {
 	let chain: string[] = [base];
 	let cur: string | undefined = decl.options[base]?.macroFor;
@@ -189,48 +190,41 @@ function getRootMacro(base: string, decl: OptionDeclaration<any>): string|undefi
 		if (!(cur in decl.options)) {
 			handleRuleError(RULE_ERROR.REFERENCE_ERROR, decl, base,
 					cur);
-			return;
+			break;
 		} else if (chain.includes(cur)) {
 			handleRuleError(RULE_ERROR.CIRCULAR_REFERENCE, decl,
 					base, cur, decl.options[cur].macroFor);
-			return;
+			break;
 		}
 
 		chain.push(cur);
 		cur = decl.options[cur].macroFor;
 	}
 
-	return cur;
-}
-
-function demacroRule(rule: OptionRule | undefined, decl: OptionDeclaration): OptionRule | undefined {
-	if (!rule?.macroFor)
-		return rule;
-
-	const k = getRootMacro(rule.macroFor, decl);
-	return k ? decl.options[k] : undefined;
+	return cur ?? base;
 }
 
 function resolveReference(base: string, decl: OptionDeclaration): OptionRule | undefined {
-	const refChain: string[] = [base];
+	const refChain: string[] = [];
 	let out: Partial<OptionRule> = {};
 
 	for (let i = 0, cur: string | undefined = base; i < MAX_REFERENCE_DEPTH; i++) {
-		const rule = demacroRule(decl.options[cur], decl);
+		cur = getRootMacro(cur, decl);
 
-		if (rule?.reference === undefined) {
+		const rule: OptionRule = decl.options[cur];
+		if (rule.reference === undefined) {
+			refChain.push(cur);
 			break;
 		} else if (!(rule.reference in decl.options)) {
 			handleRuleError(RULE_ERROR.REFERENCE_ERROR, decl, base, rule.reference);
 			return;
-		} else if (refChain.includes(rule.reference)) {
+		} else if (refChain.includes(cur)) {
 			handleRuleError(RULE_ERROR.CIRCULAR_REFERENCE, decl, base, cur, rule.reference);
 			break;
 		}
 
-		if (cur)
-			refChain.push(cur);
-
+		refChain.push(cur);
+		// getRootMacro cannot be moved here.
 		cur = rule.reference;
 	}
 
@@ -429,7 +423,7 @@ export function parseOptions<O extends { [key: string]: any }>(
 
 		if (rule.macroFor) {
 			const rootOpt = getRootMacro(k, decl);
-			if (rootOpt && decl.options[rootOpt])
+			if (rootOpt && decl.options[rootOpt] && rootOpt !== k)
 				rule = decl.options[rootOpt];
 			else
 				continue;
@@ -437,8 +431,6 @@ export function parseOptions<O extends { [key: string]: any }>(
 			optName = rootOpt;
 		}
 		optName = rule.mapTo ?? optName;
-		// if (optName in out && !(rule.allowOverride || optDecl.allowOverride))
-		// 	continue;
 
 		let __eq_val;
 		let __eq_flag = false;
