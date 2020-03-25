@@ -137,7 +137,7 @@ for (const ck in tests) {
 			res = parseOptions(decl, opts);
 			didParse = true;
 		} catch (err) {
-			errMsg = err instanceof Error ? err.stack! :
+			errMsg = err instanceof Error ? err.message :
 							'unknown error';
 		}
 
