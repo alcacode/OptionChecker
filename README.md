@@ -387,7 +387,7 @@ const decl = {
 }
 ```
 
-In the example above `secondOption`, because itself does not have them, will inherit `min`, `defaultValue`, and `coerceType` from `firstOption`. After references have been resolved, `secondOption` is effectively equivallent to:
+In the example above `secondOption`, because it itself does not have them, will inherit `min`, `defaultValue`, and `coerceType` from `firstOption`. After references have been resolved, `secondOption` is effectively equivallent to:
 
 ```JavaScript
 const decl = {
