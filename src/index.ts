@@ -411,11 +411,11 @@ export function parseOptions<O extends { [key: string]: any }>(
 
 	const decl = parseDeclaration<O>(optDecl);
 
-	// Mapped options need to go last so that they do not take precedence in
-	// case allowOverride is true.
+	// Mapped options and macros need to go first
+	// so that they do not take precedence.
 	const declKeys = Object.keys(decl.options)
-				 .sort((a, b) => (decl.options[a].mapTo || decl.options[a].macroFor ? 1 : 0) -
-						 (decl.options[b].mapTo || decl.options[b].macroFor ? 1 : 0));
+				 .sort((a, b) => (decl.options[a].mapTo || decl.options[a].macroFor ? -1 : 0) -
+						 (decl.options[b].mapTo || decl.options[b].macroFor ? -1 : 0));
 
 	for (const k of declKeys) {
 		let rule = decl.options[k];
@@ -423,7 +423,7 @@ export function parseOptions<O extends { [key: string]: any }>(
 
 		if (rule.macroFor) {
 			const rootOpt = getRootMacro(k, decl);
-			if (rootOpt && decl.options[rootOpt] && rootOpt !== k)
+			if (rootOpt && decl.options[rootOpt] && rootOpt !== k && !(!rule.allowOverride && rootOpt in out))
 				rule = decl.options[rootOpt];
 			else
 				continue;
@@ -467,9 +467,6 @@ export function parseOptions<O extends { [key: string]: any }>(
 			invalid(out, optName, rule, ERR.MISSING);
 			continue;
 		}
-
-		/* Work on a copy to prevent side effects. */
-		out[optName] = opts[k];
 
 		let value = opts[k];
 
