@@ -6,7 +6,7 @@ import {testConfig as tc_arr_like} from './arraylike';
 import {testConfig as tc_num} from './number';
 
 /** If `false`, only prints test details for failed tests. */
-const VERBOSE_OUTPUT = true;
+const VERBOSE_OUTPUT = false;
 const OUTPUT_MAX_LENGTH = 60;
 
 const tests: { [key: string]: TestConfig } = {
