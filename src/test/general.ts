@@ -28,7 +28,7 @@ export const testConfig: TestConfig = {
                 decl: { macroFor: '__numRefTarget' }
         },
         macroReference: {
-                description: 'Macro',
+                description: 'Reference to Macro',
                 arg: 2,
                 expect: 2,
                 decl: { type: 'number', reference: '__numRefTargetMacro' }
