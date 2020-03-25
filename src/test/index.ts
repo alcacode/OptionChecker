@@ -154,7 +154,7 @@ for (const ck in tests) {
 		resCount[didPass ? 0 : 1] += 1;
 
 		if (!didPass || VERBOSE_OUTPUT) {
-			console.log(`\n> ${descStr}`);
+			console.log(`\n> ${descStr.padEnd(46, ' ')} [FAILED]`);
 			console.log('Input:        ', ('arg' in t ? t.arg : '<no argument>'));
 			console.log('Output:       ', didParse ? res[propKey] : '<no return value>');
 			console.log('Output Key:   ', didParse ? propKey : '<no return value>');
