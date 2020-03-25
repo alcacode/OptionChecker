@@ -6,7 +6,7 @@ import {testConfig as tc_arr_like} from './arraylike';
 import {testConfig as tc_num} from './number';
 
 /** If `false`, only prints test details for failed tests. */
-const VERBOSE_OUTPUT = false;
+const VERBOSE_OUTPUT = true;
 const OUTPUT_MAX_LENGTH = 60;
 
 const tests: { [key: string]: TestConfig } = {
@@ -97,13 +97,23 @@ for (const ck in tests) {
 			throwOnReferenceError: true,
 			throwOnUnrecognized: true,
 			options: {
+				[tk]: t.decl,
 				__numRefTarget: {
 					type: 'number',
 					min: 1,
 					max: 2,
-					defaultValue: 1
+					defaultValue: 1,
 				},
-				[tk]: t.decl
+				__numRefTargetMacro: {
+					macroFor: '__numRefTarget'
+				},
+				__selfMacro: {
+					macroFor: tk
+				},
+				__selfReference: {
+					type: t.decl.type!,
+					reference: tk
+				},
 			}
 		};
 		const expect = t.shouldFail || t.shouldThrow ?
@@ -126,12 +136,12 @@ for (const ck in tests) {
 		try {
 			res = parseOptions(decl, opts);
 			didParse = true;
-		} catch(err) {
-			errMsg = err instanceof Error ? err.message :
+		} catch (err) {
+			errMsg = err instanceof Error ? err.stack! :
 							'unknown error';
 		}
 
-		const propKey = decl.options[tk].macroFor ?? tk;
+		const propKey = (decl.options[tk].macroFor ?? decl.options[tk].mapTo) ?? tk;
 		const gotExpected = areObjectsSimilar(res[propKey], expect);
 		let didPass = didParse && gotExpected;
 

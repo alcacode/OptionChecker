@@ -134,10 +134,10 @@ function SpeciesConstructor<T extends any>(
 	throw new TypeError(C + ' is not a valid constructor');
 }
 
-function handleRuleError(type: RULE_ERROR.CIRCULAR_REFERENCE, decl: OptionDeclaration<any>, ruleName: string, lastNonCirc?: string): void;
+function handleRuleError(type: RULE_ERROR.CIRCULAR_REFERENCE, decl: OptionDeclaration<any>, ruleName: string, lastNonCirc?: string, circRef?: any): void;
 function handleRuleError(type: RULE_ERROR.REFERENCE_ERROR, decl: OptionDeclaration<any>, ruleName: string, faultRefName?: string): void;
 function handleRuleError(type: RULE_ERROR.UNRECOGNIZED_OPTION, decl: OptionDeclaration<any>, ruleName: string): void;
-function handleRuleError(type: RULE_ERROR, decl: OptionDeclaration<any>, ruleName: string, subst_0?: string): void {
+function handleRuleError(type: RULE_ERROR, decl: OptionDeclaration<any>, ruleName: string, subst_0?: string, subst_1?: string): void {
 	let errorConst: ErrorConstructor | undefined = undefined;
 	let doWarn = decl.printWarnings === false ? false : true;
 	let msg = '';
@@ -161,7 +161,7 @@ function handleRuleError(type: RULE_ERROR, decl: OptionDeclaration<any>, ruleNam
 		if (ruleName === subst_0)
 			msg = `Rule '${ruleName}' references itself`;
 		else
-			msg = `Rule '${ruleName}' forms a circular reference after rule ${subst_0}`;
+			msg = `Rule '${ruleName}' forms a circular reference because rule '${subst_0}' references '${subst_1}'`;
 
 		if (decl.throwOnCircularReference === true)
 			errorConst = Error;
@@ -175,55 +175,64 @@ function handleRuleError(type: RULE_ERROR, decl: OptionDeclaration<any>, ruleNam
 		console.warn(msg);
 }
 
-function getRootMacro<O extends OptionList<any>, D extends O = any>(base: string, decl: OptionDeclaration<D>): keyof O | undefined {
-	let chain: Set<keyof O> = new Set();
-	let cur: string | undefined = decl.options[base].macroFor;
+function getRootMacro(base: string, decl: OptionDeclaration<any>): string|undefined
+{
+	let chain: string[] = [base];
+	let cur: string | undefined = decl.options[base]?.macroFor;
 
 	for (let i = 0; i < MAX_REFERENCE_DEPTH; i++) {
-		if (cur === undefined || !(cur in decl.options)) {
-			handleRuleError(RULE_ERROR.REFERENCE_ERROR, decl, base, cur);
+		if (cur === undefined) {
+			cur = chain.pop();
+			break;
+		}
+
+		if (!(cur in decl.options)) {
+			handleRuleError(RULE_ERROR.REFERENCE_ERROR, decl, base,
+					cur);
 			return;
-		} else if (chain.has(cur)) {
-			handleRuleError(RULE_ERROR.CIRCULAR_REFERENCE, decl, base, cur);
+		} else if (chain.includes(cur)) {
+			handleRuleError(RULE_ERROR.CIRCULAR_REFERENCE, decl,
+					base, cur, decl.options[cur].macroFor);
 			return;
 		}
 
-		if (typeof decl.options[cur].macroFor !== 'string')
-			break;
-
-		cur = decl.options[cur].macroFor!;
-		chain.add(cur);
+		chain.push(cur);
+		cur = decl.options[cur].macroFor;
 	}
 
 	return cur;
 }
 
-function resolveReference<O extends OptionList<any>>(base: string, decl: OptionDeclaration<O>): OptionRule | undefined {
-	const refChain: (keyof O)[] = [];
+function demacroRule(rule: OptionRule | undefined, decl: OptionDeclaration): OptionRule | undefined {
+	if (!rule?.macroFor)
+		return rule;
+
+	const k = getRootMacro(rule.macroFor, decl);
+	return k ? decl.options[k] : undefined;
+}
+
+function resolveReference(base: string, decl: OptionDeclaration): OptionRule | undefined {
+	const refChain: string[] = [base];
 	let out: Partial<OptionRule> = {};
 
-	for (let i = 0, cur = base; i < MAX_REFERENCE_DEPTH; i++) {
-		const rule = decl.options[cur];
+	for (let i = 0, cur: string | undefined = base; i < MAX_REFERENCE_DEPTH; i++) {
+		const rule = demacroRule(decl.options[cur], decl);
 
-		if (rule === undefined || rule.reference === undefined) {
+		if (rule?.reference === undefined) {
 			break;
 		} else if (!(rule.reference in decl.options)) {
 			handleRuleError(RULE_ERROR.REFERENCE_ERROR, decl, base, rule.reference);
 			return;
-		} else if (refChain.includes(cur)) {
-			handleRuleError(RULE_ERROR.CIRCULAR_REFERENCE, decl, base, rule.reference);
+		} else if (refChain.includes(rule.reference)) {
+			handleRuleError(RULE_ERROR.CIRCULAR_REFERENCE, decl, base, cur, rule.reference);
 			break;
 		}
 
-		cur = rule.reference;
-		if ('macroFor' in decl.options[cur])
-			cur = getRootMacro<O>(decl.options[cur].macroFor!, decl) as string;
-
 		if (cur)
-			refChain.push();
-	}
+			refChain.push(cur);
 
-	refChain.unshift(base);
+		cur = rule.reference;
+	}
 
 	// Do in reverse so that values further up the reference chain take
 	// precedence.
@@ -250,6 +259,9 @@ function parseDeclaration<O extends { [key: string]: any }>(
 		} else {
 			out.options[k] = decl.options[k];
 		}
+
+		if (typeof out.options[k].allowOverride !== 'boolean' && !decl.options[k].macroFor)
+			out.options[k].allowOverride = !decl.allowOverride;
 	}
 
 	return out;
@@ -259,10 +271,11 @@ function invalid(opts: { [key: string]: any }, key: string, rule: OptionRule,
 		 reason: ERR): void
 {
 	if (rule.required !== true) {
-		if ('defaultValue' in rule)
-			opts[rule.mapTo ?? key] = rule.defaultValue;
-		else
-			delete opts[rule.mapTo ?? key];
+		if ('defaultValue' in rule &&
+		    (!(key in opts) || ((rule.mapTo || rule.macroFor) &&
+					key in opts && rule.allowOverride))) {
+			opts[key] = rule.defaultValue;
+		}
 
 		return;
 	}
@@ -402,32 +415,30 @@ export function parseOptions<O extends { [key: string]: any }>(
 		}
 	}
 
-	const defaultOverride = optDecl.allowOverride ?? true;
 	const decl = parseDeclaration<O>(optDecl);
-	
+
 	// Mapped options need to go last so that they do not take precedence in
 	// case allowOverride is true.
 	const declKeys = Object.keys(decl.options)
-				 .sort((a, b) => (decl.options[a].mapTo ? 1 : 0) -
-						 (decl.options[b].mapTo ? 1 : 0));
+				 .sort((a, b) => (decl.options[a].mapTo || decl.options[a].macroFor ? 1 : 0) -
+						 (decl.options[b].mapTo || decl.options[b].macroFor ? 1 : 0));
 
 	for (const k of declKeys) {
 		let rule = decl.options[k];
-		let optName: string;
+		let optName = k;
 
 		if (rule.macroFor) {
-			const rootOpt = getRootMacro<O>(k, decl);
-			if (rootOpt)
+			const rootOpt = getRootMacro(k, decl);
+			if (rootOpt && decl.options[rootOpt])
 				rule = decl.options[rootOpt];
 			else
 				continue;
 
-			optName = rootOpt as string;
-		} else {
-			optName = rule.mapTo ?? k;
-			if (rule.mapTo && optName in out && !(rule.allowOverride || defaultOverride))
-				continue;
+			optName = rootOpt;
 		}
+		optName = rule.mapTo ?? optName;
+		// if (optName in out && !(rule.allowOverride || optDecl.allowOverride))
+		// 	continue;
 
 		let __eq_val;
 		let __eq_flag = false;
@@ -460,12 +471,13 @@ export function parseOptions<O extends { [key: string]: any }>(
 			break;
 		}
 
-		/* Work on a copy to prevent side effects. */
-		out[optName] = opts[k];
 		if (!(k in opts)) {
-			invalid(out, k, rule, ERR.MISSING);
+			invalid(out, optName, rule, ERR.MISSING);
 			continue;
 		}
+
+		/* Work on a copy to prevent side effects. */
+		out[optName] = opts[k];
 
 		let value = opts[k];
 
@@ -548,7 +560,7 @@ export function parseOptions<O extends { [key: string]: any }>(
 			invalid(out, k, rule, ERR.TEST_FAIL);
 			continue;
 		} else {
-			out[k] = passTest[1];
+			out[optName] = passTest[1];
 		}
 	}
 

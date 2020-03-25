@@ -27,12 +27,34 @@ export const testConfig: TestConfig = {
                 expect: 2,
                 decl: { macroFor: '__numRefTarget' }
         },
-        circularReference: {
-                description: 'Circular Reference',
+        macroReference: {
+                description: 'Macro',
+                arg: 2,
+                expect: 2,
+                decl: { type: 'number', reference: '__numRefTargetMacro' }
+        },
+        circularSelfReference: {
+                description: 'Circular Self-Reference',
                 shouldThrow: true,
                 decl: {
                         type: 'any',
-                        reference: 'circularReference'
+                        reference: 'circularSelfReference'
+                }
+        },
+        circularReferenceToMacro: {
+                description: 'Circular Reference to Macro',
+                shouldThrow: true,
+                decl: {
+                        type: 'any',
+                        reference: '__selfMacro'
+                }
+        },
+        circularReferenceToReference: {
+                description: 'Circular Reference to Reference',
+                shouldThrow: true,
+                decl: {
+                        type: 'any',
+                        reference: '__selfReference'
                 }
         },
         circularMacro: {
