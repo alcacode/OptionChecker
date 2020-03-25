@@ -1,3 +1,38 @@
+const MAX_REFERENCE_DEPTH = 16;
+
+function isObject(arg: any): arg is object
+{
+	return typeof arg === 'object' || (arg instanceof Object);
+}
+
+function isTypedArray(val: any): val is TypedArrayInstance {
+	return val instanceof Uint8Array.prototype.__proto__.constructor;
+}
+
+function isWellFormedIterator(val: any): val is Iterator<any>
+{
+	if (!(val instanceof Function))
+		return false;
+
+	const itr = val();
+	let tmp;
+	if (itr.next instanceof Function && isObject(tmp = itr.next()) &&
+	    typeof tmp.done === 'boolean' && 'value' in tmp)
+		return true;
+
+	return false;
+}
+
+function isArrayLike<T extends ArrayLike<any>>(val: T): val is T
+{
+	if (!isObject(val) || typeof val.length !== 'number')
+		return false;
+
+	return Array.isArray(val) || isTypedArray(val) ||
+	       Array.prototype[Symbol.iterator] === val[Symbol.iterator] ||
+	       isWellFormedIterator(val[Symbol.iterator]);
+}
+
 function isCoercable(rule: OptionRule): rule is CoercableOptionRuleType
 {
 	switch (rule.type) {
@@ -9,11 +44,6 @@ function isCoercable(rule: OptionRule): rule is CoercableOptionRuleType
 	}
 
 	return false;
-}
-
-function isObject(arg: any): arg is object
-{
-	return typeof arg === 'object' || (arg instanceof Object);
 }
 
 function isConstructor(arg: any): arg is new (...args: any[]) => any
@@ -104,19 +134,155 @@ function SpeciesConstructor<T extends any>(
 	throw new TypeError(C + ' is not a valid constructor');
 }
 
+function handleRuleError(type: RULE_ERROR.CIRCULAR_REFERENCE, decl: OptionDeclaration<any>, ruleName: string, lastNonCirc?: string, circRef?: any): void;
+function handleRuleError(type: RULE_ERROR.REFERENCE_ERROR, decl: OptionDeclaration<any>, ruleName: string, faultRefName?: string): void;
+function handleRuleError(type: RULE_ERROR.UNRECOGNIZED_OPTION, decl: OptionDeclaration<any>, ruleName: string): void;
+function handleRuleError(type: RULE_ERROR, decl: OptionDeclaration<any>, ruleName: string, subst_0?: string, subst_1?: string): void {
+	let errorConst: ErrorConstructor | undefined = undefined;
+	let doWarn = decl.printWarnings === false ? false : true;
+	let msg = '';
+
+	switch (type) {
+	case RULE_ERROR.UNRECOGNIZED_OPTION:
+		msg = `Option object contains unrecognized option '${ruleName}'`;
+		if (decl.throwOnUnrecognized === true)
+			errorConst = Error;
+
+		doWarn = false;
+		break;
+	case RULE_ERROR.REFERENCE_ERROR:
+		msg = `Rule '${ruleName}' was discarded because it references non-existent rule '${subst_0}'`;
+
+		if (decl.throwOnReferenceError === true)
+			errorConst = ReferenceError;
+
+		break;
+	case RULE_ERROR.CIRCULAR_REFERENCE:
+		if (ruleName === subst_0)
+			msg = `Rule '${ruleName}' references itself`;
+		else
+			msg = `Rule '${ruleName}' forms a circular reference because rule '${subst_0}' references '${subst_1}'`;
+
+		if (decl.throwOnCircularReference === true)
+			errorConst = Error;
+
+		break;
+	}
+
+	if (errorConst instanceof Function)
+		throw errorConst(msg);
+	else if (doWarn)
+		console.warn(msg);
+}
+
+function getRootMacro(base: string, decl: OptionDeclaration<any>): string|undefined
+{
+	let chain: string[] = [base];
+	let cur: string | undefined = decl.options[base]?.macroFor;
+
+	for (let i = 0; i < MAX_REFERENCE_DEPTH; i++) {
+		if (cur === undefined) {
+			cur = chain.pop();
+			break;
+		}
+
+		if (!(cur in decl.options)) {
+			handleRuleError(RULE_ERROR.REFERENCE_ERROR, decl, base,
+					cur);
+			return;
+		} else if (chain.includes(cur)) {
+			handleRuleError(RULE_ERROR.CIRCULAR_REFERENCE, decl,
+					base, cur, decl.options[cur].macroFor);
+			return;
+		}
+
+		chain.push(cur);
+		cur = decl.options[cur].macroFor;
+	}
+
+	return cur;
+}
+
+function demacroRule(rule: OptionRule | undefined, decl: OptionDeclaration): OptionRule | undefined {
+	if (!rule?.macroFor)
+		return rule;
+
+	const k = getRootMacro(rule.macroFor, decl);
+	return k ? decl.options[k] : undefined;
+}
+
+function resolveReference(base: string, decl: OptionDeclaration): OptionRule | undefined {
+	const refChain: string[] = [base];
+	let out: Partial<OptionRule> = {};
+
+	for (let i = 0, cur: string | undefined = base; i < MAX_REFERENCE_DEPTH; i++) {
+		const rule = demacroRule(decl.options[cur], decl);
+
+		if (rule?.reference === undefined) {
+			break;
+		} else if (!(rule.reference in decl.options)) {
+			handleRuleError(RULE_ERROR.REFERENCE_ERROR, decl, base, rule.reference);
+			return;
+		} else if (refChain.includes(rule.reference)) {
+			handleRuleError(RULE_ERROR.CIRCULAR_REFERENCE, decl, base, cur, rule.reference);
+			break;
+		}
+
+		if (cur)
+			refChain.push(cur);
+
+		cur = rule.reference;
+	}
+
+	// Do in reverse so that values further up the reference chain take
+	// precedence.
+	for (let i = refChain.length - 1; i >= 0; i--)
+		out = Object.assign(out, decl.options[refChain[i]]);
+
+	delete out.reference;
+
+	return out as OptionRule;
+}
+
+/** Returns a new declaration based on `decl` with all references resolved. */
+function parseDeclaration<O extends { [key: string]: any }>(
+	decl: OptionDeclaration<O>): OptionDeclaration<Partial<O>>
+{
+	const out = Object.assign({}, decl);
+	out.options = {} as OptionList<O>;
+
+	for (const k of Object.keys(decl.options) as (keyof O)[]) {
+		if (decl.options[k].reference && !decl.options[k].macroFor) {
+			const opt = resolveReference(k as string, decl);
+			if (opt)
+				out.options[k] = opt;
+		} else {
+			out.options[k] = decl.options[k];
+		}
+
+		if (typeof out.options[k].allowOverride !== 'boolean' && !decl.options[k].macroFor)
+			out.options[k].allowOverride = !decl.allowOverride;
+	}
+
+	return out;
+}
+
 function invalid(opts: { [key: string]: any }, key: string, rule: OptionRule,
 		 reason: ERR): void
 {
-	if (!rule.required) {
-		if ('defaultValue' in rule)
+	if (rule.required !== true) {
+		if ('defaultValue' in rule &&
+		    (!(key in opts) || ((rule.mapTo || rule.macroFor) &&
+					key in opts && rule.allowOverride))) {
 			opts[key] = rule.defaultValue;
-		else
-			delete opts[key];
+		}
 
 		return;
 	}
 
-	const optStr = `option '${key}'`;
+	let optStr = `option ${key}`;
+	if (rule.mapTo)
+		optStr += ` (macro for ${rule.mapTo})`;
 
 	switch (reason) {
 	case ERR.OUT_OF_RANGE:
@@ -133,8 +299,7 @@ function invalid(opts: { [key: string]: any }, key: string, rule: OptionRule,
 	case ERR.NOT_INTEGER:
 		throw TypeError(`${optStr} is not an integer`);
 	case ERR.MISSING:
-		throw ReferenceError(
-			`${optStr} is required, but is not present`);
+		throw ReferenceError(`${optStr} is required, but is not present`);
 	case ERR.WRONG_TYPE:
 		throw TypeError(`${optStr} must be of type ${rule.type},` +
 				` got ${typeof opts[key]}`);
@@ -163,17 +328,18 @@ function invalid(opts: { [key: string]: any }, key: string, rule: OptionRule,
 			throw TypeError(`${optStr} is not an instance of ${
 				rule.instance.name}`);
 		else
-			throw TypeError(
-				`${optStr} is not a valid instance type`);
+			throw TypeError(`${optStr} is not a valid instance type`);
 	case ERR.UNEXPECTED_VALUE:
 		throw Error(`${optStr} has an unexpected value`);
-	default:
-		throw Error(`${optStr} is invalid`);
+	case ERR.NOT_ARRAY_LIKE:
+		throw Error(`${optStr} is not an array-like Object`);
 	}
+
+	throw Error(`${optStr} is invalid (unknown reason)`);
 }
 
 function evalTestFn(val: any, fn?: (arg: any) => boolean, passFull?: boolean,
-		    partial?: boolean): [boolean, typeof val]
+		    partial?: boolean, cmpctArrLike?: boolean): [boolean, typeof val]
 {
 	if (!(fn instanceof Function))
 		return [true, val];
@@ -187,6 +353,7 @@ function evalTestFn(val: any, fn?: (arg: any) => boolean, passFull?: boolean,
 	// Handle edge cases.
 	const isStr = (typeof val === 'string');
 	const isMapOrSet = val instanceof Map || val instanceof Set;
+	const isArrayLike = Array.isArray(val) || isTypedArray(val);
 
 	let tmp: any;
 	if (partial) {
@@ -196,7 +363,7 @@ function evalTestFn(val: any, fn?: (arg: any) => boolean, passFull?: boolean,
 			tmp = new (SpeciesConstructor(val, Object));
 	}
 
-	let numValid = 0;
+	let validIndicies: Set<any> = new Set();
 	let result = true;
 	let entries: [string | number | symbol, any][];
 
@@ -219,62 +386,106 @@ function evalTestFn(val: any, fn?: (arg: any) => boolean, passFull?: boolean,
 			else
 				tmp[k] = v;
 
-			numValid++;
+			validIndicies.add(k);
 		}
 	}
 
-	if (partial && numValid === 0)
+	if (partial && validIndicies.size === 0)
 		result = false;
 
-	return [result, partial ? tmp : val];
+	if (result && isArrayLike && cmpctArrLike && validIndicies.size !== val.length)
+		tmp = tmp.filter((_: any, i: number) => validIndicies.has('' + i));
+
+	validIndicies.clear();
+	return [result, partial ? tmp : (tmp = null)];
 }
 
-export function parseOptions<O extends OptionList<any>>(
+export function parseOptions<O extends { [key: string]: any }>(
 	optDecl: OptionDeclaration<O>,
-	opts?: {[key: string]: any}): OptionList<O>
+	opts?: {[key: string]: any}): OptionList<Partial<O>>
 {
 	const out: { [key: string]: any } = {};
 	if (typeof opts !== 'object')
 		opts = out;
 
-	if (optDecl.throwOnUnrecognized) {
+	if (optDecl.throwOnUnrecognized === true) {
 		for (const k of Object.keys(opts)) {
 			if (!(k in optDecl.options))
-				throw Error(`unrecognized option '${k}'`);
+				handleRuleError(RULE_ERROR.UNRECOGNIZED_OPTION, optDecl, k);
 		}
 	}
 
-	for (const k of Object.keys(optDecl.options)) {
-		const rule = Object.create(optDecl.options[k]) as OptionRule;
-		let __internal_eq_val;
-		let __internal_eq_flag = 0;
+	const decl = parseDeclaration<O>(optDecl);
 
-		// Convert macro types.
-		if (rule.type === 'array') {
-			rule.type = 'object';
-			rule.instance = Array;
-		} else if (rule.type === 'null') {
-			rule.type = 'object';
-			__internal_eq_flag = 1;
-			__internal_eq_val = null;
-		} else {
-			rule.type = rule.type.toLowerCase() as OptionCheckerTypes;
+	// Mapped options need to go last so that they do not take precedence in
+	// case allowOverride is true.
+	const declKeys = Object.keys(decl.options)
+				 .sort((a, b) => (decl.options[a].mapTo || decl.options[a].macroFor ? 1 : 0) -
+						 (decl.options[b].mapTo || decl.options[b].macroFor ? 1 : 0));
+
+	for (const k of declKeys) {
+		let rule = decl.options[k];
+		let optName = k;
+
+		if (rule.macroFor) {
+			const rootOpt = getRootMacro(k, decl);
+			if (rootOpt && decl.options[rootOpt])
+				rule = decl.options[rootOpt];
+			else
+				continue;
+
+			optName = rootOpt;
+		}
+		optName = rule.mapTo ?? optName;
+		// if (optName in out && !(rule.allowOverride || optDecl.allowOverride))
+		// 	continue;
+
+		let __eq_val;
+		let __eq_flag = false;
+		let __skip_type_check = false;
+		let __check_arraylike = false;
+
+		/* Convert macro types. */
+		switch (rule.type) {
+		case 'array':
+			rule = Object.assign(rule, { type: 'object', instance: Array });
+			break;
+		case 'arraylike':
+			rule = Object.assign(rule, { type: 'object' });
+			__check_arraylike = true;
+			break;
+		case 'null':
+			rule = Object.assign(rule, { type: 'object' });
+			__eq_flag = true;
+			__eq_val = null;
+			break;
+		case 'int':
+			rule.type = 'number';
+			rule.notFloat = true;
+			break;
+		case 'any':
+			__skip_type_check = true;
+			break;
+		default:
+			rule.type = rule.type?.toLowerCase() as BaseTypes;
+			break;
 		}
 
-		// Work on a copy to prevent side effects.
-		out[k] = opts[k];
 		if (!(k in opts)) {
-			invalid(out, k, rule, ERR.MISSING);
+			invalid(out, optName, rule, ERR.MISSING);
 			continue;
 		}
 
+		/* Work on a copy to prevent side effects. */
+		out[optName] = opts[k];
+
 		let value = opts[k];
 
-		if (isCoercable(rule) && rule.coerceType === true)
+		if (isCoercable(rule) && !__skip_type_check)
 			value = coerceType(value, rule.type);
 
-		if (rule.type !== typeof value &&
-			rule.onWrongType instanceof Function)
+		if (rule.type !== typeof value && !__skip_type_check &&
+		    rule.onWrongType instanceof Function)
 			value = rule.onWrongType.call(null, value);
 
 		if (rule.transformFn instanceof Function)
@@ -282,13 +493,18 @@ export function parseOptions<O extends OptionList<any>>(
 
 		/** Final value type. */
 		const valType = typeof value;
-		if (rule.type !== valType) {
+		if (rule.type !== valType && !__skip_type_check) {
 			invalid(out, k, rule, ERR.WRONG_TYPE);
 			continue;
 		}
 
-		if (__internal_eq_flag && value !== __internal_eq_val) {
+		if (__eq_flag && value !== __eq_val) {
 			invalid(out, k, rule, ERR.UNEXPECTED_VALUE);
+			continue;
+		}
+
+		if (__check_arraylike && !isArrayLike(value)) {
+			invalid(out, k, rule, ERR.NOT_ARRAY_LIKE);
 			continue;
 		}
 
@@ -300,7 +516,7 @@ export function parseOptions<O extends OptionList<any>>(
 			}
 		}
 
-		/* Value range and length complicance. */
+		/* Test range and length. */
 		if (valType === 'number' || valType === 'bigint') {
 			if (('min' in rule && rule.min! > value) ||
 			    ('max' in rule && rule.max! < value)) {
@@ -335,20 +551,23 @@ export function parseOptions<O extends OptionList<any>>(
 			}
 		}
 
-		const passTest = evalTestFn(value, rule.passTest, rule.testFullValue,
-					    rule.allowPartialPass);
+		const passTest =
+			evalTestFn(value, rule.passTest, rule.testFullValue,
+				   rule.allowPartialPass,
+				   (rule as OptionRuleObject).compactArrayLike);
+
 		if (!passTest[0]) {
 			invalid(out, k, rule, ERR.TEST_FAIL);
 			continue;
 		} else {
-			out[k] = passTest[1];
+			out[optName] = passTest[1];
 		}
 	}
 
 	return out as OptionList<O>;
 }
 
-export const OptionChecker = (function() {
+export const OptionCheckerConstructor = (function() {
 	return function OptionChecker(this: {
 		       [optVarName: string]: ReturnType<typeof parseOptions>
 	       },

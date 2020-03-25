@@ -1,15 +1,88 @@
 # option_checker
 
-Provides the class `OptionChecker` and `parseOptions()` which provides robust options checking.
+Provides the `parseOptions()` function and `OptionChecker` class.
+
+The `parseOption()` function verifies an options-object according to a predefined declaration, and returns an object containing only valid values whose properties may be known in advance.
+The `OptionChecker` class is an extensible class whose `constructor` calls `parseOption()` and assigns the return value to a predefined property (`options` by default) of the instance object.
+
+## Installation
+
+### NPM
+
+```console
+npm install alcacode/OptionChecker
+```
+
+### Manual
+
+Download or clone the repository using `git clone https://github.com/alcacode/OptionChecker.git`.
+
+## Usage
+
+```typescript
+// Declare what options are allowed.
+const decl = {
+  options: {
+    str: {
+      /*
+       * Declare (required) what the expected type is after
+       * any value transforming steps have taken place.
+       */
+      type: 'string',
+      // Declare any optional requirements.
+      minLength: 1,
+      maxLength: 10,
+      defaultValue: 'default'
+    },
+    num: {
+      type: 'number',
+      min: 10,
+      max: 30,
+      isNaN: false,
+      /*
+       * Function whose return value replace the option value,
+       * if its type is invalid.
+       */
+      onWrongType: (v) => typeof v === 'string' ? +v : undefined
+    }
+  }
+}
+
+const parsedOptions = parseOptions(decl, providedOptions);
+```
+
+In the above example, `parsedOptions` is guaranteed to have `str` property with a `String` value of length between 1 and 10.
+It will have a `num` property _if_ a `num` option with a non-`NaN` `Number` or `String` coercable to a `Number` value that is greater than or equal to `10` and less than or equal to `30` was provided.
+
+## Table of Contents
 
 - [option_checker](#optionchecker)
+  - [Installation](#installation)
+    - [NPM](#npm)
+    - [Manual](#manual)
+  - [Usage](#usage)
+  - [Table of Contents](#table-of-contents)
+  - [Option types](#option-types)
+    - [ES6 Types](#es6-types)
+    - [Macro Types](#macro-types)
+      - [Array](#array)
+      - [Int](#int)
+      - [Null](#null)
+    - [Special Types](#special-types)
+      - [Any](#any)
+      - [ArrayLike](#arraylike)
   - [The `OptionDeclaration` Object](#the-optiondeclaration-object)
+    - [`OptionDeclaration.allowOverride`](#optiondeclarationallowoverride)
+    - [`OptionDeclaration.throwOnCircularReference`](#optiondeclarationthrowoncircularreference)
+    - [`OptionDeclaration.throwOnReferenceError`](#optiondeclarationthrowonreferenceerror)
     - [`OptionDeclaration.throwOnUnrecognized`](#optiondeclarationthrowonunrecognized)
+    - [`OptionDeclaration.printWarnings`](#optiondeclarationprintwarnings)
     - [`OptionDeclaration.optVarName`](#optiondeclarationoptvarname)
     - [`OptionDeclaration.options`](#optiondeclarationoptions)
   - [The `OptionRule` Object](#the-optionrule-object)
     - [**`OptionRule.type`**](#optionruletype)
     - [`OptionRule.required`](#optionrulerequired)
+    - [`OptionRule.allowOverride`](#optionruleallowoverride)
     - [`OptionRule.defaultValue`](#optionruledefaultvalue)
     - [`OptionRule.passTest(value)`](#optionrulepasstestvalue)
     - [`OptionRule.testFullValue`](#optionruletestfullvalue)
@@ -29,6 +102,10 @@ Provides the class `OptionChecker` and `parseOptions()` which provides robust op
       - [Conversion to `boolean`](#conversion-to-boolean)
       - [Conversion to `number`](#conversion-to-number)
       - [Conversion to `string`](#conversion-to-string)
+    - [`OptionRule.compactArrayLike`](#optionrulecompactarraylike)
+    - [`OptionRule.mapTo`](#optionrulemapto)
+    - [`OptionRule.macroTo`](#optionrulemacroto)
+    - [`OptionRule.reference`](#optionrulereference)
   - [`parseOptions(optDecl[, opts])`](#parseoptionsoptdecl-opts)
     - [Parameters](#parameters)
     - [Returns](#returns)
@@ -38,15 +115,83 @@ Provides the class `OptionChecker` and `parseOptions()` which provides robust op
   - [`OptionChecker()`](#optionchecker-1)
     - [Parameters](#parameters-1)
 
+## Option types
+
+The following types can be used in `OptionRule`. Type value is case-insensitive.
+
+### ES6 Types
+
+- object
+- function
+- number
+- bigint
+- string
+- undefined
+- boolean
+- symbol
+
+### Macro Types
+
+Macro types are types that expand to a built-in type with some specific configuration.
+
+#### Array
+
+Shorthand for 'object' where `instance` is `Array`.
+
+#### Int
+
+Shorthand for 'number' where `isFloat` is `false`.
+
+#### Null
+
+Shorthand for 'object' where the only allowed value is `null`.
+
+### Special Types
+
+Special types are types with specific behavior associated with them.
+
+#### Any
+
+Allows any type to pass. Prevents `onWrongType` from being called.
+
+#### ArrayLike
+
+Any `Array`, `TypedArray`, or `Object` with a `Number` valued `length` property and `@@iterable` method returning well-formed iterables.
+An iterable is considered well-formed when it has a `value` property and a `Boolean` valued `done` property.
+
 ## The `OptionDeclaration` Object
 
 The options declaration object is used to declare the requirements of applicable to options and to tweak the behavior of `parseOptions()`.
+
+### `OptionDeclaration.allowOverride`
+
+- <`boolean`>
+
+Optional. Overrides the default value of `allowOverride`. Does _not_ override individually set `allowOverride`. Default: `true`.
+
+### `OptionDeclaration.throwOnCircularReference`
+
+- <`boolean`>
+
+Optional. If `true`, throw an exception if a rule contains circular references. Default: `false`.
+
+### `OptionDeclaration.throwOnReferenceError`
+
+- <`boolean`>
+
+Optional. If `true`, throw a `ReferenceError` if a rule contains references to non-existent rules. Default: `false`.
 
 ### `OptionDeclaration.throwOnUnrecognized`
 
 - <`boolean`>
 
 Optional. If `true`, causes any provided option not present in `OptionDeclaration.options` to throw an exception. Default: `false`.
+
+### `OptionDeclaration.printWarnings`
+
+- <`boolean`>
+
+Optional. If `true`, a warning message will be emitted when reference errors or circular references are found. Default: `true`.
 
 ### `OptionDeclaration.optVarName`
 
@@ -68,7 +213,7 @@ Object specifying limits for individual options.
 
 - <`string`>
 
-Required. Case insensitive. One of `'object'`, `'function'`, `'number'`, `'bigint'`, `'string'`, `'undefined'`, `'boolean'`, `'symbol'`, `'array'`, or `'null'`.
+Required. Case insensitive. One of `'object'`, `'function'`, `'number'`, `'bigint'`, `'string'`, `'undefined'`, `'boolean'`, `'symbol'`, `'array'`, `'null'`, or `'any'`.
 
 Note: Although the option value is tested against the specified type, there are multiple ways of converting said value to an appropriate type. What it really means is that the _resulting value_ of any conversion attempts must adhere to the specified type.
 
@@ -77,6 +222,12 @@ Note: Although the option value is tested against the specified type, there are 
 - <`boolean`>
 
 Optional. If `true` an exception will be thrown if the option is missing or its value is invalid.
+
+### `OptionRule.allowOverride`
+
+- <`boolean`>
+
+Optional. If `true`, a mapped option may overwrite the option it is mapped to (the last valid value is used). If `false`, a mapped option will only used when the option it is mapped to is either missing or invalid. Defaults to the value of the global `allowOverride`.
 
 ### `OptionRule.defaultValue`
 
@@ -136,7 +287,7 @@ Optional. Only applies where `type` is `'string'`, `'object'`, `'function'`, or 
 
 - <`object`> | <`Function`>
 
-Optional. Only applies where `type` is `'object'`, `'function'`, or `'array'`. Discard option if value is not an instance of `instance`.
+Optional. Only applies where `type` is `'object'` or `'function'`. Discard option if value is not an instance of `instance`.
 
 ### `OptionRule.max`
 
@@ -188,6 +339,32 @@ Values are converted by performing string concatenation, with the exception of `
 
 Note: This occurs _before_ `onWrongType()` and `transformFn()` are called.
 
+### `OptionRule.compactArrayLike`
+
+- <`boolean`>
+
+Optional. If `true`, remove any gaps resulting from a partial pass. Instances of `Array` and `TypedArray` are considered array-like.
+
+Note: Has no effect if `allowPartialPass` is not `true`.
+
+### `OptionRule.mapTo`
+
+- <`string`>
+
+Optional. Map option to a different property key in the output object.
+
+### `OptionRule.macroTo`
+
+- <`string`>
+
+Optional. Use the rules of another option and map output accordingly. _All_ other options are discarded if set. If the referenced rule does not exist, a warning message will be printed and the option will be discarded.
+
+### `OptionRule.reference`
+
+- <`string`>
+
+Optional. If set, inherits the rules of the referenced rule. If the referenced rule does not exist, a warning message will be printed and the option will be discarded. If the reference is circular a warning message is printed and the reference is ignored, but the rule is kept.
+
 ## `parseOptions(optDecl[, opts])`
 
 ### Parameters
@@ -206,6 +383,8 @@ Parsed options object. Contains options with valid values or its default value i
 
 ### Exceptions
 
+- <`Error`> If `throwOnCircularError` is `true` and a macro rule or rule reference forms a circular reference.
+- <`ReferenceError`> If `throwOnReferenceError` is `true` and a rule references a non-existent rule.
 - <`Error`> If `throwOnUnrecognized` is `true` and an option not present in `optDecl.options` is found.
 - If an option has `required` set to `true` and the associated option is either missing or invalid. The type of exception thrown is determined by the first failed criterion.
 
