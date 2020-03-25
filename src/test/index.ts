@@ -157,9 +157,13 @@ for (const ck in tests) {
 			console.log(`\n> ${descStr}`);
 			console.log('Input:        ', ('arg' in t ? t.arg : '<no argument>'));
 			console.log('Output:       ', didParse ? res[propKey] : '<no return value>');
+			console.log('Output Key:   ', didParse ? propKey : '<no return value>');
 			console.log('Expected:     ', t.shouldThrow ? 'N/A' : expect);
 			console.log('Should Fail:  ', t.shouldFail ? 'Yes' : 'No');
 			console.log('Should Throw: ', t.shouldThrow ? 'Yes' : 'No');
+
+			if (didParse)
+				console.log('Full Output:  ', res);
 
 			let resStr = `Result:       %c${didPass ? 'PASSED' : 'FAILED'}%c`;
 			if (!didParse)
