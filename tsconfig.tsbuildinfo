@@ -154,7 +154,7 @@
         "signature": "1377923021927244ea19433873b997ad8585533b0a56d5de29cda497f7842756"
       },
       "./src/index.ts": {
-        "version": "49bc6bb4eaf951b81a969934c63c64ec76d3d614d1b4241fdae751446dcf2cae",
+        "version": "094f607177d3a239b561274d35165343c9bc052fd4164ad9c6469f08ee49617a",
         "signature": "c9991510cc55146ccca21a66f85f2a11766831e7c7ea33c5be0d7bdc91574227"
       },
       "./src/test/array.ts": {
@@ -194,6 +194,7 @@
       "target": 5,
       "baseUrl": "/",
       "esModuleInterop": true,
+      "moduleResolution": 2,
       "module": 1,
       "sourceMap": false,
       "noImplicitAny": true,
