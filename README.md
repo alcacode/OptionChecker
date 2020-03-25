@@ -106,11 +106,12 @@ It will have a `num` property _if_ a `num` option with a non-`NaN` `Number` or `
     - [`OptionRule.mapTo`](#optionrulemapto)
     - [`OptionRule.macroTo`](#optionrulemacroto)
     - [`OptionRule.reference`](#optionrulereference)
+      - [Example](#example)
   - [`parseOptions(optDecl[, opts])`](#parseoptionsoptdecl-opts)
     - [Parameters](#parameters)
     - [Returns](#returns)
     - [Exceptions](#exceptions)
-    - [Example](#example)
+    - [Example](#example-1)
   - [Class: `OptionChecker`](#class-optionchecker)
   - [`OptionChecker()`](#optionchecker-1)
     - [Parameters](#parameters-1)
@@ -363,7 +364,43 @@ Optional. Use the rules of another option and map output accordingly. _All_ othe
 
 - <`string`>
 
-Optional. If set, inherits the rules of the referenced rule. If the referenced rule does not exist, a warning message will be printed and the option will be discarded. If the reference is circular a warning message is printed and the reference is ignored, but the rule is kept.
+Optional. If set, inherits rules from the referenced rule if they're not set. If the referenced rule does not exist, a warning message will be printed and the option will be discarded. If the reference is circular a warning message is printed and the reference is ignored, but the rule is kept.
+
+#### Example
+
+```JavaScript
+const decl = {
+  options: {
+    firstOption: {
+      type: 'number',
+      min: 0,
+      max: 10,
+      defaultValue: 5,
+      coerceType: true
+    },
+    secondOption: {
+      type: 'number',
+      reference: 'firstOption',
+      max: 11
+    }
+  }
+}
+```
+
+In the example above `secondOption`, because itself does not have them, will inherit `min`, `defaultValue`, and `coerceType` from `firstOption`. After references have been resolved, `secondOption` is effectively equivallent to:
+
+```JavaScript
+const decl = {
+  // ...
+  secondOption: {
+    type: 'number',
+    min: 0,
+    max: 11,
+    defaultValue: 5,
+    coerceType: true
+  }
+}
+```
 
 ## `parseOptions(optDecl[, opts])`
 
