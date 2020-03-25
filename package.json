@@ -1,6 +1,6 @@
 {
   "name": "option_checker",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "Provides robust options checking via the `parseOptions()` function and extensible `OptionChecker` class.",
   "main": "lib/index.js",
   "directories": {
