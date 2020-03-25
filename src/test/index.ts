@@ -172,7 +172,7 @@ for (const ck in tests) {
 				resStr += ', option discarded';
 			else if (!gotExpected)
 				resStr += `, unexpected value`;
-			console.log(resStr, `color:${didPass ? 'green' : 'red'};font-weight:600;`, '');
+			console.log(resStr + '\n', `color:${didPass ? 'green' : 'red'};font-weight:600;`, '', '');
 		} else {
 			console.log(`${descStr.padEnd(48, ' ')} [PASSED]`);
 		}
