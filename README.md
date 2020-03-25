@@ -19,31 +19,33 @@ Download or clone the repository using `git clone https://github.com/alcacode/Op
 
 ## Usage
 
-```typescript
-// Declare what options are allowed.
+```JavaScript
+// Option Declaration
 const decl = {
+  throwOnUnrecognized: true,
   options: {
     str: {
-      /*
-       * Declare (required) what the expected type is after
-       * any value transforming steps have taken place.
-       */
       type: 'string',
-      // Declare any optional requirements.
+      // Reject values whose 'length' property is less than 1.
       minLength: 1,
+      // Reject values whose 'length' property is greater than 10.
       maxLength: 10,
+      // If the input was rejected, set the value to 'default'.
       defaultValue: 'default'
     },
     num: {
       type: 'number',
+      // Reject values smaller than 10.
       min: 10,
+      // Reject values greater than 30.
       max: 30,
-      isNaN: false,
-      /*
-       * Function whose return value replace the option value,
-       * if its type is invalid.
-       */
+      // Reject NaN values.
+      notNaN: true,
+      // Function whose return value replace input of wrong type.
       onWrongType: (v) => typeof v === 'string' ? +v : undefined
+    },
+    str2: {
+      macroFor: 'str'
     }
   }
 }
@@ -51,8 +53,8 @@ const decl = {
 const parsedOptions = parseOptions(decl, providedOptions);
 ```
 
-In the above example, `parsedOptions` is guaranteed to have `str` property with a `String` value of length between 1 and 10.
-It will have a `num` property _if_ a `num` option with a non-`NaN` `Number` or `String` coercable to a `Number` value that is greater than or equal to `10` and less than or equal to `30` was provided.
+In the above example, `parsedOptions` is guaranteed to have `str` property with a `String` value of length between 1 and 10. If no valid `str` option is provided, the value of `str2` is used instead (provided that it is valid). If both `str` and `str2` are invalid or missing `str` will recieve its default value `'default'`.\
+`parsedOptions` will have a `num` property _if_ a `num` option with a non-`NaN` `Number` or `String` coercable to a `Number` value that is greater than or equal to `10` and less than or equal to `30` was provided.
 
 ## Table of Contents
 
@@ -369,7 +371,7 @@ Optional. If set, inherits rules from the referenced rule if they're not set. If
 #### Example
 
 ```JavaScript
-const decl = {
+{
   options: {
     firstOption: {
       type: 'number',
@@ -390,7 +392,7 @@ const decl = {
 In the example above `secondOption`, because it itself does not have them, will inherit `min`, `defaultValue`, and `coerceType` from `firstOption`. After references have been resolved, `secondOption` is effectively equivallent to:
 
 ```JavaScript
-const decl = {
+{
   // ...
   secondOption: {
     type: 'number',
@@ -427,7 +429,7 @@ Parsed options object. Contains options with valid values or its default value i
 
 ### Example
 
-```TypeScript
+```JavaScript
   {
     options: {
       num: {
