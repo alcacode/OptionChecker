@@ -166,7 +166,7 @@
         "signature": "9bf7d0ec99a59941cf169c5030d65b9f42de461c2b91fee04b6559d2026367a8"
       },
       "./src/test/general.ts": {
-        "version": "2aecc9fa7cc860cc467130d3c3c4bfc65741485bdae019c3ce12506e7401159c",
+        "version": "c9c7e53546c9089394c33ce040a74b3c80dacfd4788486d137380b0f502f8636",
         "signature": "9bf7d0ec99a59941cf169c5030d65b9f42de461c2b91fee04b6559d2026367a8"
       },
       "./src/test/string.ts": {
@@ -178,7 +178,7 @@
         "signature": "9bf7d0ec99a59941cf169c5030d65b9f42de461c2b91fee04b6559d2026367a8"
       },
       "./src/test/index.ts": {
-        "version": "ce599aff952cf970362959174ec149dc0e656aa85e29edf88858744d9ff5e597",
+        "version": "d5ac793ab1be4ccda83683e67c59296aaa25bf9cb2f0fdfa0b1e142a766c1739",
         "signature": "5691a832de9275faa0d0df78c6761de8d3b6888ebb51b719265b0235169dcd91"
       },
       "./@types/lib/index.d.ts": {
