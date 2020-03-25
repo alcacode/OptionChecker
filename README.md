@@ -72,6 +72,7 @@ It will have a `num` property _if_ a `num` option with a non-`NaN` `Number` or `
       - [Any](#any)
       - [ArrayLike](#arraylike)
   - [The `OptionDeclaration` Object](#the-optiondeclaration-object)
+    - [`OptionDeclaration.allowOverride`](#optiondeclarationallowoverride)
     - [`OptionDeclaration.throwOnCircularReference`](#optiondeclarationthrowoncircularreference)
     - [`OptionDeclaration.throwOnReferenceError`](#optiondeclarationthrowonreferenceerror)
     - [`OptionDeclaration.throwOnUnrecognized`](#optiondeclarationthrowonunrecognized)
@@ -81,6 +82,7 @@ It will have a `num` property _if_ a `num` option with a non-`NaN` `Number` or `
   - [The `OptionRule` Object](#the-optionrule-object)
     - [**`OptionRule.type`**](#optionruletype)
     - [`OptionRule.required`](#optionrulerequired)
+    - [`OptionRule.allowOverride`](#optionruleallowoverride)
     - [`OptionRule.defaultValue`](#optionruledefaultvalue)
     - [`OptionRule.passTest(value)`](#optionrulepasstestvalue)
     - [`OptionRule.testFullValue`](#optionruletestfullvalue)
@@ -101,6 +103,9 @@ It will have a `num` property _if_ a `num` option with a non-`NaN` `Number` or `
       - [Conversion to `number`](#conversion-to-number)
       - [Conversion to `string`](#conversion-to-string)
     - [`OptionRule.compactArrayLike`](#optionrulecompactarraylike)
+    - [`OptionRule.mapTo`](#optionrulemapto)
+    - [`OptionRule.macroTo`](#optionrulemacroto)
+    - [`OptionRule.reference`](#optionrulereference)
   - [`parseOptions(optDecl[, opts])`](#parseoptionsoptdecl-opts)
     - [Parameters](#parameters)
     - [Returns](#returns)
@@ -158,6 +163,12 @@ An iterable is considered well-formed when it has a `value` property and a `Bool
 
 The options declaration object is used to declare the requirements of applicable to options and to tweak the behavior of `parseOptions()`.
 
+### `OptionDeclaration.allowOverride`
+
+- <`boolean`>
+
+Optional. Overrides the default value of `allowOverride`. Does _not_ override individually set `allowOverride`. Default: `true`.
+
 ### `OptionDeclaration.throwOnCircularReference`
 
 - <`boolean`>
@@ -211,6 +222,12 @@ Note: Although the option value is tested against the specified type, there are 
 - <`boolean`>
 
 Optional. If `true` an exception will be thrown if the option is missing or its value is invalid.
+
+### `OptionRule.allowOverride`
+
+- <`boolean`>
+
+Optional. If `true`, a mapped option may overwrite the option it is mapped to (the last valid value is used). If `false`, a mapped option will only used when the option it is mapped to is either missing or invalid. Defaults to the value of the global `allowOverride`.
 
 ### `OptionRule.defaultValue`
 
@@ -330,6 +347,24 @@ Optional. If `true`, remove any gaps resulting from a partial pass. Instances of
 
 Note: Has no effect if `allowPartialPass` is not `true`.
 
+### `OptionRule.mapTo`
+
+- <`string`>
+
+Optional. Map option to a different property key in the output object.
+
+### `OptionRule.macroTo`
+
+- <`string`>
+
+Optional. Use the rules of another option and map output accordingly. _All_ other options are discarded if set. If the referenced rule does not exist, a warning message will be printed and the option will be discarded.
+
+### `OptionRule.reference`
+
+- <`string`>
+
+Optional. If set, inherits the rules of the referenced rule. If the referenced rule does not exist, a warning message will be printed and the option will be discarded. If the reference is circular a warning message is printed and the reference is ignored, but the rule is kept.
+
 ## `parseOptions(optDecl[, opts])`
 
 ### Parameters
@@ -348,6 +383,8 @@ Parsed options object. Contains options with valid values or its default value i
 
 ### Exceptions
 
+- <`Error`> If `throwOnCircularError` is `true` and a macro rule or rule reference forms a circular reference.
+- <`ReferenceError`> If `throwOnReferenceError` is `true` and a rule references a non-existent rule.
 - <`Error`> If `throwOnUnrecognized` is `true` and an option not present in `optDecl.options` is found.
 - If an option has `required` set to `true` and the associated option is either missing or invalid. The type of exception thrown is determined by the first failed criterion.
 
