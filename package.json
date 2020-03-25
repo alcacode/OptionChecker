@@ -1,7 +1,7 @@
 {
   "name": "option_checker",
-  "version": "1.1.0",
-  "description": "Provides the abstract class OptionChecker which provides robust options checking.",
+  "version": "1.2.0",
+  "description": "Provides robust options checking via the `parseOptions()` function and extensible `OptionChecker` class.",
   "main": "lib/index.js",
   "directories": {
     "lib": "lib"
@@ -9,7 +9,7 @@
   "dependencies": {
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node lib/test/index.js"
   },
   "keywords": [
     "options",
