@@ -78,5 +78,13 @@ export const testConfig: TestConfig = {
                 decl: {
                         macroFor: 'ruleThatDoesNotExist'
                 }
+        },
+        mappedOption: {
+                description: 'Mapped Option',
+                arg: 123,
+                decl: {
+                        type: 'number',
+                        mapTo: 'opt'
+                }
         }
 };
