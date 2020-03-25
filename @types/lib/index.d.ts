@@ -139,7 +139,7 @@ declare interface OptionRuleBase extends OptTransform {
 	 */
 	reference?: string;
 
-	/** Map this option to a different property key in the output object. */
+	/** Map option to a different property key in the output object. */
 	mapTo?: string;
 
 	/**
