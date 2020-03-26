@@ -1,5 +1,3 @@
-/// <reference path="index.d.ts" />
-
 const MAX_REFERENCE_DEPTH = 16;
 
 function isObject(arg: any): arg is object

@@ -3,7 +3,6 @@
                 "target": "es2018",
                 "baseUrl": "/",
                 "esModuleInterop": true,
-                "moduleResolution": "node",
                 "module": "commonjs",
                 "sourceMap": false,
                 "noImplicitAny": true,
@@ -19,10 +18,9 @@
                 "composite": true,
                 "rootDir": "src/",
                 "typeRoots": [
-                        "./src/index"
+                        "./src/"
                 ],
                 "types": [
-                        "./src/index",
                         "./index"
                 ],
                 "declarationDir": "./@types/option_checker/"
@@ -35,5 +33,6 @@
                 ".gitignore",
                 "package-lock.json",
                 "*.code-workspace",
+                "node_modules"
         ]
 }
