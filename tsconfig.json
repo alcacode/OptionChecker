@@ -19,12 +19,16 @@
                 "composite": true,
                 "rootDir": "src/",
                 "typeRoots": [
-                        "./src/index/index.d.ts"
+                        "./src/index/index"
+                ],
+                "types": [
+                        "./src/index",
+                        "./index"
                 ],
                 "declarationDir": "./@types/option_checker/"
         },
         "include": [
-                "src/**/*"
+                "./src/**/*"
         ],
         "exclude": [
                 ".vscode",

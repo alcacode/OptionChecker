@@ -12,6 +12,7 @@
   "devDependencies": {
     "typescript": "next"
   },
+  "bundleDependencies": [],
   "scripts": {
     "test": "node test/index.js"
   },
@@ -22,6 +23,6 @@
   ],
   "author": "alcacode",
   "license": "GPL-2.0-only",
-  "types": "/src/index.d.ts",
+  "types": "/index.d.ts",
   "private": true
 }
