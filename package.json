@@ -22,6 +22,6 @@
   ],
   "author": "alcacode",
   "license": "GPL-2.0-only",
-  "types": "src/index.d.ts",
+  "types": "/src/index.d.ts",
   "private": true
 }
