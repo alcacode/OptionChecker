@@ -1,31 +1,36 @@
-declare interface TestConfigItem {
-	/**
-	 * Concise describing what is being tested. Values longer
-	 * than 48 characters are trimmed.
-	 */
-	description?: string;
+import { OptionRule } from "option_checker";
 
-	/**
-	 * Argument to provide during testing.
-	 * @see `Function.prototype.apply()`
-	 */
-	arg?: any;
+declare module 'option_checker' {
+        export interface TestConfigItem {
+                /**
+                 * Concise describing what is being tested. Values
+                 * longer than 48 characters are trimmed.
+                 */
+                description?: string;
 
-	/**
-	 * Expected output. Defaults to value of `arg` if not set.
-	 */
-	expect?: any;
+                /**
+                 * Argument to provide during testing.
+                 * @see `Function.prototype.apply()`
+                 */
+                arg?: any;
 
-	/** Option rule to apply. */
-	decl: OptionRule;
+                /**
+                 * Expected output. Defaults to value of `arg` if not
+                 * set.
+                 */
+                expect?: any;
 
-	/** If `true`, expect test to fail. */
-	shouldFail?: boolean;
+                /** Option rule to apply. */
+                decl: OptionRule;
 
-	/** If `true`, expect test to throw an exception. */
-	shouldThrow?: boolean;
-}
+                /** If `true`, expect test to fail. */
+                shouldFail?: boolean;
 
-declare interface TestConfig {
-	[key: string]: TestConfigItem;
+                /** If `true`, expect test to throw an exception. */
+                shouldThrow?: boolean;
+        }
+
+        export interface TestConfig {
+                [key: string]: TestConfigItem;
+        }
 }

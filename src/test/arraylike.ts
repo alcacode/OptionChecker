@@ -1,3 +1,5 @@
+import { TestConfig } from "option_checker";
+
 const genericArrayLike: { [x: number]: any, length: number, [Symbol.iterator](): Iterator<any> } = {
         '0': 1,
         '1': 2,

@@ -1,3 +1,20 @@
+/// <reference path="index.d.ts" />
+import {
+	RULE_ERROR,
+	ERR,
+	OptionDeclaration,
+	OptionRule,
+	OptionList,
+	OptionRuleNumber,
+	OptionRuleBigint,
+	OptionRuleObject,
+	OptionRuleString,
+	BaseTypes,
+	OptionCheckerConstructor,
+	CoercableOptionRuleType,
+	CoercableTypes
+} from 'option_checker';
+
 const MAX_REFERENCE_DEPTH = 16;
 
 function isObject(arg: any): arg is object

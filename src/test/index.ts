@@ -4,6 +4,7 @@ import {testConfig as tc_str} from './string';
 import {testConfig as tc_arr} from './array';
 import {testConfig as tc_arr_like} from './arraylike';
 import {testConfig as tc_num} from './number';
+import { TestConfig, OptionDeclaration, OptionList } from 'option_checker';
 
 /** If `false`, only prints test details for failed tests. */
 const VERBOSE_OUTPUT = false;
