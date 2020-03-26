@@ -61,7 +61,6 @@ function areObjectsSimilar(a, b) {
     }
     return true;
 }
-exports.areObjectsSimilar = areObjectsSimilar;
 let resCount = [0, 0];
 for (const ck in tests) {
     console.groupCollapsed(centerAndPad(` ${ck.toUpperCase()} `, '='));

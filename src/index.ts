@@ -1,3 +1,5 @@
+/// <reference path="index.d.ts" />
+
 const MAX_REFERENCE_DEPTH = 16;
 
 function isObject(arg: any): arg is object
@@ -556,7 +558,7 @@ export function parseOptions<O extends { [key: string]: any }>(
 	return out as OptionList<O>;
 }
 
-export const OptionCheckerConstructor = (function() {
+export const OptionChecker = (function() {
 	return function OptionChecker(this: {
 		       [optVarName: string]: ReturnType<typeof parseOptions>
 	       },

@@ -1,9 +1,3 @@
-declare function parseOptions<O extends OptionList<any>>(optDecl: OptionDeclaration<O>, opts?: {
-	[key: string]: any;
-    }): OptionList<O>;
-
-declare const OptionChecker: OptionCheckerConstructor;
-
 /** ES-6 types. */
 declare type BaseTypes = ('object' | 'function' | 'number' | 'bigint' |
 			  'string' | 'undefined' | 'boolean' | 'symbol');

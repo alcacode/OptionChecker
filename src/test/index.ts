@@ -1,3 +1,6 @@
+/// <reference path="index.d.ts" />
+/// <reference path="../index.d.ts" />
+
 import { parseOptions } from '../index';
 import {testConfig as tc_gen} from './general';
 import {testConfig as tc_str} from './string';
@@ -47,7 +50,7 @@ function getPrototype<T extends any>(obj: T)
  * Returns `true` if two objects `a` and `b`, contain identical sets of
  * properties and values therein.
  */
-export function areObjectsSimilar(a: any, b: any): boolean
+function areObjectsSimilar(a: any, b: any): boolean
 {
 	if (a === b)
 		return true;

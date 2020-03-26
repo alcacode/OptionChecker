@@ -9,7 +9,7 @@
                 "noImplicitAny": true,
                 "removeComments": true,
                 "alwaysStrict": true,
-                "outDir": "lib/",
+                "outDir": ".",
                 "strict": true,
                 "noUnusedLocals": true,
                 "lib": [
@@ -19,14 +19,13 @@
                 "composite": true,
                 "rootDir": "src/",
                 "typeRoots": [
-                        "@types/",
-                        "@types/lib/",
-                        "@types/lib/test/index.d.ts",
+                        "./src/index/index.d.ts"
                 ],
-                "declarationDir": "@types/lib"
+                "declarationDir": "./@types/option_checker/"
         },
         "include": [
-                "src/**/*"
+                "src/index.ts",
+                "./src/test/*.ts"
         ],
         "exclude": [
                 ".vscode",
