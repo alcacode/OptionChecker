@@ -15,15 +15,7 @@
                         "ESNext",
                         "DOM"
                 ],
-                "composite": true,
-                "rootDir": "src/",
-                "typeRoots": [
-                        "./src/"
-                ],
-                "types": [
-                        "./index"
-                ],
-                "declarationDir": "./@types/option_checker/"
+                "rootDir": "src/"
         },
         "include": [
                 "./src/**/*"

@@ -1,6 +1,3 @@
-/// <reference path="index.d.ts" />
-/// <reference path="../index.d.ts" />
-
 import { parseOptions } from '../index';
 import {testConfig as tc_gen} from './general';
 import {testConfig as tc_str} from './string';

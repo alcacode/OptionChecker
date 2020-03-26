@@ -14,8 +14,6 @@ declare type TypedArrayInstance =
 	 Float32Array | Float64Array);
 
 declare interface ArrayLike<T> {
-	readonly length: number;
-	readonly [n: number]: T;
 	[Symbol.iterator](): IterableIterator<T>
 }
 
