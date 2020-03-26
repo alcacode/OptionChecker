@@ -19,7 +19,7 @@
                 "composite": true,
                 "rootDir": "src/",
                 "typeRoots": [
-                        "./src/index/index"
+                        "./src/index"
                 ],
                 "types": [
                         "./src/index",
