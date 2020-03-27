@@ -302,6 +302,23 @@ declare module 'option_checker'
 
 	export const enum COERCE_TYPE {BIGINT, BOOLEAN, NUMBER, STRING}
 
+	export type typeRetVal<T> = T extends string ? (
+		T extends 'number' ? number :
+		T extends 'int' ? number :
+		T extends 'string' ? string :
+		T extends 'object' ? object :
+		T extends 'array' ? any[] :
+		T extends 'bigint' ? BigInt :
+		T extends 'symbol' ? symbol :
+		T extends 'undefined' ? undefined :
+		T extends 'null' ? null :
+		T extends 'arraylike' ? ArrayLike<any> :
+		T extends 'any' ? any :
+		T extends 'boolean' ? boolean :
+		T extends 'function' ? (...args: any[]) => any :
+		T
+	) : unknown;
+
 	export function parseOptions<O extends { [key: string]: OptionRule }, P extends { [k in keyof O]?: any } = any>(
 		optDecl: OptionDeclaration<O>,
 		opts?: P): {[k in keyof O]: 'macroFor' extends keyof O[k] ? undefined :
