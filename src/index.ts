@@ -1,6 +1,6 @@
 /// <reference path="index.d.ts" />
 import {
-	RULE_ERROR,
+	RULE_ERROR,OptionCheckerTypes,
 	ERR,
 	OptionDeclaration,
 	OptionRule,
@@ -413,9 +413,9 @@ function evalTestFn(val: any, fn?: (arg: any) => boolean, passFull?: boolean,
 
 export function parseOptions<O extends { [key: string]: OptionRule }, P extends { [k in keyof O]?: any } = any>(
 	optDecl: OptionDeclaration<O>,
-	opts?: P): {[k in keyof O]:
-		(k extends keyof P ? (P[k] extends typeRetVal<O[k]['type']> ? P[k] : typeRetVal<O[k]['type']>) :typeRetVal<O[k]['type']>) |
-		('defaultValue' extends keyof O[k] ? never : (O[k]['required'] extends true ? never : undefined));
+	opts?: P): {[k in keyof O]: 'macroFor' extends keyof O[k] ? undefined :
+		(k extends keyof P ? (P[k] extends typeRetVal<O[k]['type']> ? P[k] : typeRetVal<O[k]['type']>) : typeRetVal<O[k]['type']>) |
+		('defaultValue' extends keyof O[k] ? never : (O[k]['required'] extends true ? never : undefined))
 	}
 {
 	const out: P = {} as any;

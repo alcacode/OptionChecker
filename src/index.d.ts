@@ -25,5 +25,5 @@ declare type typeRetVal<T> = T extends string ? (
 	T extends 'any' ? any :
 	T extends 'boolean' ? boolean :
 	T extends 'function' ? (...args: any[]) => any :
-	any
+	T
 ) : unknown;

@@ -224,7 +224,7 @@ declare module 'option_checker'
 		 OptionRuleNull|OptionRuleAny|OptionRuleMacro);
 
 	export type OptionList<O extends { [key: string]: OptionRule }> = {
-		[P in keyof O]: O[P] & OptionRule;
+		[P in keyof O]-?: O[P] & OptionRule;
 	}
 
 	export interface OptionDeclaration<O extends {[key: string]: OptionRule}> {
@@ -302,12 +302,12 @@ declare module 'option_checker'
 
 	export const enum COERCE_TYPE {BIGINT, BOOLEAN, NUMBER, STRING}
 
-	export function parseOptions<O extends { [key: string]: OptionRule }, P extends { [key: string]: any } = any>(
+	export function parseOptions<O extends { [key: string]: OptionRule }, P extends { [k in keyof O]?: any } = any>(
 		optDecl: OptionDeclaration<O>,
-		opts?: P): {[k in keyof O]:
-			(k extends keyof P ? (P[k] extends typeRetVal<O[k]['type']> ? P[k] : typeRetVal<O[k]['type']>) :typeRetVal<O[k]['type']>) |
-			('defaultValue' extends keyof O[k] ? never : (O[k]['required'] extends true ? never : undefined));
-		}
+		opts?: P): {[k in keyof O]: 'macroFor' extends keyof O[k] ? undefined :
+			(k extends keyof P ? (P[k] extends typeRetVal<O[k]['type']> ? P[k] : typeRetVal<O[k]['type']>) : typeRetVal<O[k]['type']>) |
+			('defaultValue' extends keyof O[k] ? never : (O[k]['required'] extends true ? never : undefined))
+		};
 	export function OptionChecker(optDecl: OptionDeclaration<any>,
 				      options?: {[key: string]: any}):
 		OptionCheckerConstructor;
