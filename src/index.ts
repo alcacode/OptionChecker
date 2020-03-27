@@ -1,6 +1,6 @@
 /// <reference path="index.d.ts" />
 import {
-	RULE_ERROR,OptionCheckerTypes,
+	RULE_ERROR,
 	ERR,
 	OptionDeclaration,
 	OptionRule,
