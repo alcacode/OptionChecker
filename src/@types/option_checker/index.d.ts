@@ -223,11 +223,11 @@ declare module 'option_checker'
 		 OptionRuleBoolean|OptionRuleArray|OptionRuleSymbol|
 		 OptionRuleNull|OptionRuleAny|OptionRuleMacro);
 
-	export type OptionList<O extends {[key: string]: any}> = {
-		[P in keyof O]: OptionRule
+	export type OptionList<O extends { [key: string]: OptionRule }> = {
+		[P in keyof O]: O[P] extends (OptionRule & infer R) ? R : OptionRule;
 	}
 
-	export interface OptionDeclaration<O = {[key: string]: any}> {
+	export interface OptionDeclaration<O extends {[key: string]: OptionRule}> {
 		/**
 		 * If `true`, throw an exception if a rule contains
 		 * circular references.\ Default: `false`
@@ -304,7 +304,7 @@ declare module 'option_checker'
 
 	export function parseOptions<O extends {[key: string]: any}>(
 		optDecl: OptionDeclaration<O>,
-		opts?: {[key: string]: any}): OptionList<Partial<O>>;
+		opts?: {[key: string]: any}): OptionList<O>;
 	export function OptionChecker(optDecl: OptionDeclaration<any>,
 				      options?: {[key: string]: any}):
 		OptionCheckerConstructor;

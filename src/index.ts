@@ -221,9 +221,9 @@ function getRootMacro(base: string, decl: OptionDeclaration<any>): string
 	return cur ?? base;
 }
 
-function resolveReference(base: string, decl: OptionDeclaration): OptionRule | undefined {
+function resolveReference<O extends OptionRule>(base: string, decl: OptionDeclaration<any>): O | undefined {
 	const refChain: string[] = [];
-	let out: Partial<OptionRule> = {};
+	let out = {} as O;
 
 	for (let i = 0, cur: string | undefined = base; i < MAX_REFERENCE_DEPTH; i++) {
 		cur = getRootMacro(cur, decl);
@@ -252,19 +252,19 @@ function resolveReference(base: string, decl: OptionDeclaration): OptionRule | u
 
 	delete out.reference;
 
-	return out as OptionRule;
+	return out;
 }
 
 /** Returns a new declaration based on `decl` with all references resolved. */
 function parseDeclaration<O extends { [key: string]: any }>(
-	decl: OptionDeclaration<O>): OptionDeclaration<Partial<O>>
+	decl: OptionDeclaration<O>): OptionDeclaration<O>
 {
 	const out = Object.assign({}, decl);
 	out.options = {} as OptionList<O>;
 
 	for (const k of Object.keys(decl.options) as (keyof O)[]) {
 		if (decl.options[k].reference && !decl.options[k].macroFor) {
-			const opt = resolveReference(k as string, decl);
+			const opt = resolveReference<O[keyof O]>(k as string, decl);
 			if (opt)
 				out.options[k] = opt;
 		} else {
@@ -413,7 +413,7 @@ function evalTestFn(val: any, fn?: (arg: any) => boolean, passFull?: boolean,
 
 export function parseOptions<O extends { [key: string]: any }>(
 	optDecl: OptionDeclaration<O>,
-	opts?: {[key: string]: any}): OptionList<Partial<O>>
+	opts?: {[key: string]: any}): OptionList<O>
 {
 	const out: { [key: string]: any } = {};
 	if (typeof opts !== 'object')
@@ -577,7 +577,7 @@ export const OptionChecker = (function() {
 	return function OptionChecker(this: {
 		       [optVarName: string]: ReturnType<typeof parseOptions>
 	       },
-				      optDecl: OptionDeclaration,
+				      optDecl: OptionDeclaration<any>,
 				      options?: { [key: string]: any }) {
 		if (new.target === undefined)
 			throw TypeError("Constructor OptionChecker requires 'new'");
