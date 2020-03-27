@@ -411,11 +411,14 @@ function evalTestFn(val: any, fn?: (arg: any) => boolean, passFull?: boolean,
 	return [result, partial ? tmp : (tmp = null)];
 }
 
-export function parseOptions<O extends { [key: string]: any }>(
+export function parseOptions<O extends { [key: string]: OptionRule }, P extends { [k in keyof O]?: any } = any>(
 	optDecl: OptionDeclaration<O>,
-	opts?: {[key: string]: any}): OptionList<O>
+	opts?: P): {[k in keyof O]:
+		(k extends keyof P ? (P[k] extends typeRetVal<O[k]['type']> ? P[k] : typeRetVal<O[k]['type']>) :typeRetVal<O[k]['type']>) |
+		('defaultValue' extends keyof O[k] ? never : (O[k]['required'] extends true ? never : undefined));
+	}
 {
-	const out: { [key: string]: any } = {};
+	const out: P = {} as any;
 	if (typeof opts !== 'object')
 		opts = out;
 
@@ -566,11 +569,11 @@ export function parseOptions<O extends { [key: string]: any }>(
 			invalid(out, k, rule, ERR.TEST_FAIL);
 			continue;
 		} else {
-			out[optName] = passTest[1];
+			out[optName as keyof O] = passTest[1];
 		}
 	}
 
-	return out as OptionList<O>;
+	return out as any;
 }
 
 export const OptionChecker = (function() {
