@@ -323,7 +323,7 @@ declare module 'option_checker'
 		optDecl: OptionDeclaration<O>,
 		opts?: P): {[k in keyof O]: 'macroFor' extends keyof O[k] ? undefined :
 			(k extends keyof P ? (P[k] extends typeRetVal<O[k]['type']> ? P[k] : typeRetVal<O[k]['type']>) : typeRetVal<O[k]['type']>) |
-			('defaultValue' extends keyof O[k] ? never : (O[k]['required'] extends true ? never : undefined))
+			('defaultValue' extends keyof O[k] ? O[k]['defaultValue'] : (O[k]['required'] extends true ? never : undefined))
 		};
 	export function OptionChecker(optDecl: OptionDeclaration<any>,
 				      options?: {[key: string]: any}):
