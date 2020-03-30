@@ -325,7 +325,5 @@ declare module 'option_checker'
 			(k extends keyof P ? (P[k] extends typeRetVal<O[k]['type']> ? P[k] : typeRetVal<O[k]['type']>) : typeRetVal<O[k]['type']>) |
 			('defaultValue' extends keyof O[k] ? O[k]['defaultValue'] : (O[k]['required'] extends true ? never : undefined))
 		};
-	export function OptionChecker(optDecl: OptionDeclaration<any>,
-				      options?: {[key: string]: any}):
-		OptionCheckerConstructor;
+	export const OptionChecker: OptionCheckerConstructor;
 }

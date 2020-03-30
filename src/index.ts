@@ -256,7 +256,7 @@ function resolveReference<O extends OptionRule>(base: string, decl: OptionDeclar
 }
 
 /** Returns a new declaration based on `decl` with all references resolved. */
-function parseDeclaration<O extends { [key: string]: any }>(
+function parseDeclaration<O extends { [key: string]: OptionRule }>(
 	decl: OptionDeclaration<O>): OptionDeclaration<O>
 {
 	const out = Object.assign({}, decl);
