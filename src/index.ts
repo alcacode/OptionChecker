@@ -1,7 +1,7 @@
 /// <reference path="index.d.ts" />
 import {
 	RULE_ERROR,
-	ERR,
+	ERRNO,
 	OptionDeclaration,
 	OptionRule,
 	OptionList,
@@ -279,7 +279,7 @@ function parseDeclaration<O extends { [key: string]: OptionRule }>(
 }
 
 function invalid(opts: { [key: string]: any }, key: string, rule: OptionRule,
-		 reason: ERR): void
+		 reason: ERRNO): void
 {
 	if (rule.required !== true) {
 		if ('defaultValue' in rule &&
@@ -296,27 +296,27 @@ function invalid(opts: { [key: string]: any }, key: string, rule: OptionRule,
 		optStr += ` (macro for ${rule.mapTo})`;
 
 	switch (reason) {
-	case ERR.OUT_OF_RANGE:
+	case ERRNO.OUT_OF_RANGE:
 		rule = rule as (OptionRuleNumber | OptionRuleBigint);
 		const rangeMax = 'max' in rule ? ' < ' + (rule.max! + 1) : '';
 		const rangeMin = 'min' in rule ? (rule.min! - 1) + ' < ' : '';
 
 		throw RangeError(`${optStr} is not within its allowed` +
 				 `range [${rangeMin}x${rangeMax}]`);
-	case ERR.NOT_FINITE:
+	case ERRNO.NOT_FINITE:
 		throw RangeError(`${optStr} is not a finite number`);
-	case ERR.NAN:
+	case ERRNO.NOT_A_NUMBER:
 		throw TypeError(`${optStr} must not be NaN`);
-	case ERR.NOT_INTEGER:
+	case ERRNO.NOT_INTEGER:
 		throw TypeError(`${optStr} is not an integer`);
-	case ERR.MISSING:
+	case ERRNO.MISSING_VALUE:
 		throw ReferenceError(`${optStr} is required, but is not present`);
-	case ERR.WRONG_TYPE:
+	case ERRNO.INVALID_TYPE:
 		throw TypeError(`${optStr} must be of type ${rule.type},` +
 				` got ${typeof opts[key]}`);
-	case ERR.TEST_FAIL:
+	case ERRNO.TEST_FAIL:
 		throw Error(`${optStr} failed to validate`);
-	case ERR.LENGTH_OUT_OF_RANGE:
+	case ERRNO.INVALID_LENGTH:
 		rule = rule as (OptionRuleObject | OptionRuleString);
 
 		if (typeof opts[key].length !== 'number')
@@ -333,16 +333,16 @@ function invalid(opts: { [key: string]: any }, key: string, rule: OptionRule,
 		throw RangeError(
 			`${optStr} has an invalid length, the` +
 			` allowed range is [${lenMin}length${lenMax}]`);
-	case ERR.INVALID_INSTANCE:
+	case ERRNO.INVALID_INSTANCE:
 		rule = rule as OptionRuleObject;
 		if (rule.instance && rule.instance.name)
 			throw TypeError(`${optStr} is not an instance of ${
 				rule.instance.name}`);
 		else
 			throw TypeError(`${optStr} is not a valid instance type`);
-	case ERR.UNEXPECTED_VALUE:
+	case ERRNO.UNEXPECTED_VALUE:
 		throw Error(`${optStr} has an unexpected value`);
-	case ERR.NOT_ARRAY_LIKE:
+	case ERRNO.NOT_ARRAY_LIKE:
 		throw Error(`${optStr} is not an array-like Object`);
 	}
 
@@ -484,7 +484,7 @@ export function parseOptions<O extends { [key: string]: OptionRule }, P extends 
 		}
 
 		if (!(k in opts)) {
-			invalid(out, optName, rule, ERR.MISSING);
+			invalid(out, optName, rule, ERRNO.MISSING_VALUE);
 			continue;
 		}
 
@@ -503,24 +503,24 @@ export function parseOptions<O extends { [key: string]: OptionRule }, P extends 
 		/** Final value type. */
 		const valType = typeof value;
 		if (rule.type !== valType && !__skip_type_check) {
-			invalid(out, k, rule, ERR.WRONG_TYPE);
+			invalid(out, k, rule, ERRNO.INVALID_TYPE);
 			continue;
 		}
 
 		if (__eq_flag && value !== __eq_val) {
-			invalid(out, k, rule, ERR.UNEXPECTED_VALUE);
+			invalid(out, k, rule, ERRNO.UNEXPECTED_VALUE);
 			continue;
 		}
 
 		if (__check_arraylike && !isArrayLike(value)) {
-			invalid(out, k, rule, ERR.NOT_ARRAY_LIKE);
+			invalid(out, k, rule, ERRNO.NOT_ARRAY_LIKE);
 			continue;
 		}
 
 		if ('instance' in rule) {
 			if (!isObject(value) ||
 			    !(value instanceof rule.instance!)) {
-				invalid(out, k, rule, ERR.INVALID_INSTANCE);
+				invalid(out, k, rule, ERRNO.INVALID_INSTANCE);
 				continue;
 			}
 		}
@@ -529,7 +529,7 @@ export function parseOptions<O extends { [key: string]: OptionRule }, P extends 
 		if (valType === 'number' || valType === 'bigint') {
 			if (('min' in rule && rule.min! > value) ||
 			    ('max' in rule && rule.max! < value)) {
-				invalid(out, k, rule, ERR.OUT_OF_RANGE);
+				invalid(out, k, rule, ERRNO.OUT_OF_RANGE);
 				continue;
 			}
 		} else if (valType === 'string' || valType === 'object') {
@@ -540,22 +540,22 @@ export function parseOptions<O extends { [key: string]: OptionRule }, P extends 
 			     (len === NaN || rule.minLength! > len)) ||
 			    ('maxLength' in rule &&
 			     (len === NaN || rule.maxLength! < len))) {
-				invalid(out, k, rule, ERR.LENGTH_OUT_OF_RANGE);
+				invalid(out, k, rule, ERRNO.INVALID_LENGTH);
 				continue;
 			}
 		}
 
 		if (valType === 'number') {
 			if ('notNaN' in rule && rule.notNaN && Number.isNaN(value)) {
-				invalid(out, k, rule, ERR.NAN);
+				invalid(out, k, rule, ERRNO.NOT_A_NUMBER);
 				continue;
 			} else if ('notInfinite' in rule && rule.notInfinite &&
 				   !Number.isFinite(value)) {
-				invalid(out, k, rule, ERR.NOT_FINITE);
+				invalid(out, k, rule, ERRNO.NOT_FINITE);
 				continue;
 			} else if ('notFloat' in rule && rule.notFloat &&
 				   !Number.isInteger(value)) {
-				invalid(out, k, rule, ERR.NOT_INTEGER);
+				invalid(out, k, rule, ERRNO.NOT_INTEGER);
 				continue;
 			}
 		}
@@ -566,7 +566,7 @@ export function parseOptions<O extends { [key: string]: OptionRule }, P extends 
 				   (rule as OptionRuleObject).compactArrayLike);
 
 		if (!passTest[0]) {
-			invalid(out, k, rule, ERR.TEST_FAIL);
+			invalid(out, k, rule, ERRNO.TEST_FAIL);
 			continue;
 		} else {
 			out[optName as keyof O] = passTest[1];

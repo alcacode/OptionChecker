@@ -286,15 +286,15 @@ declare module 'option_checker'
 		CIRCULAR_REFERENCE = 3
 	}
 
-	export const enum ERR {
+	export const enum ERRNO {
 		OUT_OF_RANGE,
 		NOT_FINITE,
-		NAN,
+		NOT_A_NUMBER,
 		NOT_INTEGER,
-		MISSING,
-		WRONG_TYPE,
+		MISSING_VALUE,
+		INVALID_TYPE,
 		TEST_FAIL,
-		LENGTH_OUT_OF_RANGE,
+		INVALID_LENGTH,
 		INVALID_INSTANCE,
 		UNEXPECTED_VALUE,
 		NOT_ARRAY_LIKE
