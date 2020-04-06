@@ -5,6 +5,10 @@ Provides the `parseOptions()` function and `OptionChecker` class.
 The `parseOption()` function verifies an options-object according to a predefined declaration, and returns an object containing only valid values whose properties may be known in advance.
 The `OptionChecker` class is an extensible class whose `constructor` calls `parseOption()` and assigns the return value to a predefined property (`options` by default) of the instance object.
 
+## THIS PROJECT IS OBSOLETE
+
+This project has been superseded by [object_validator](https://github.com/alcacode/object_validator).
+
 ## Installation
 
 ### NPM
@@ -59,6 +63,7 @@ In the above example, `parsedOptions` is guaranteed to have `str` property with 
 ## Table of Contents
 
 - [option_checker](#optionchecker)
+  - [THIS PROJECT IS OBSOLETE](#this-project-is-obsolete)
   - [Installation](#installation)
     - [NPM](#npm)
     - [Manual](#manual)
